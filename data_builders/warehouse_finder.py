@@ -8,14 +8,19 @@ and stores/updates the results in a parquet file.
 import requests
 import pandas as pd
 import os
+import math
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 from datetime import datetime
 
 
 # Default data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
+
+# Conversion constants
+METERS_PER_DEGREE_LAT = 111320  # Approximately constant
+SQ_FEET_PER_SQ_METER = 10.7639
 
 
 class WarehouseFinder:
@@ -31,7 +36,16 @@ class WarehouseFinder:
         self.db_path = db_path
         self.overpass_url = "https://overpass-api.de/api/interpreter"
 
-    def search_warehouses(self, lat: float, lon: float, radius_meters: int) -> List[Dict]:
+    def search_warehouses(
+        self,
+        lat: float,
+        lon: float,
+        radius_meters: int,
+        include_building_types: Optional[List[str]] = None,
+        exclude_building_types: Optional[List[str]] = None,
+        min_area_sq_ft: Optional[float] = None,
+        use_precise_area: bool = False
+    ) -> List[Dict]:
         """
         Search for warehouses within a radius of a location
 
@@ -39,17 +53,46 @@ class WarehouseFinder:
             lat: Latitude of center point
             lon: Longitude of center point
             radius_meters: Search radius in meters
+            include_building_types: List of building types to include (e.g., ['warehouse', 'industrial'])
+                                   If None, defaults to ['warehouse']
+            exclude_building_types: List of building types to exclude (e.g., ['office', 'retail'])
+            min_area_sq_ft: Minimum building area in square feet (filters after retrieval)
+            use_precise_area: If True, use Shoelace formula for precise area calculation.
+                            If False, use faster bounding box estimation.
 
         Returns:
             List of warehouse dictionaries with extracted data
         """
-        # Overpass QL query to find buildings with building=warehouse tag
-        # Using around filter instead of center coordinates
+        # Default to searching for warehouses if no types specified
+        if include_building_types is None:
+            include_building_types = ['warehouse']
+
+        # Build Overpass QL query dynamically based on building types and exclusions
+        query_parts = []
+
+        if min_area_sq_ft is not None and not include_building_types:
+            # Area filtering with no type preference: get ALL buildings, filter by size later
+            # This is the slowest case - only use when you want large buildings of any type
+            print(f"Area filtering: retrieving ALL buildings (exclusions applied after size calculation)")
+            query_parts.append(f'way["building"](around:{radius_meters},{lat},{lon});')
+            query_parts.append(f'relation["building"](around:{radius_meters},{lat},{lon});')
+        elif min_area_sq_ft is not None and include_building_types:
+            # Area filtering WITH type hints: get specific types, then filter by size
+            # This is more efficient - we only get buildings we're interested in
+            print(f"Area filtering: retrieving {include_building_types} buildings (then filtering by size)")
+            for building_type in include_building_types:
+                query_parts.append(f'way["building"="{building_type}"](around:{radius_meters},{lat},{lon});')
+                query_parts.append(f'relation["building"="{building_type}"](around:{radius_meters},{lat},{lon});')
+        else:
+            # No area filtering, search only for specific building types
+            for building_type in include_building_types:
+                query_parts.append(f'way["building"="{building_type}"](around:{radius_meters},{lat},{lon});')
+                query_parts.append(f'relation["building"="{building_type}"](around:{radius_meters},{lat},{lon});')
+
         query = f"""
         [out:json][timeout:25];
         (
-          way["building"="warehouse"](around:{radius_meters},{lat},{lon});
-          relation["building"="warehouse"](around:{radius_meters},{lat},{lon});
+          {' '.join(query_parts)}
         );
         out body;
         >;
@@ -72,33 +115,79 @@ class WarehouseFinder:
         # Filter for ways and relations (not nodes)
         buildings = [e for e in elements if e.get("type") in ["way", "relation"]]
 
-        print(f"Found {len(buildings)} warehouse buildings")
+        print(f"Found {len(buildings)} buildings from API")
 
+        # Process each building
         for element in buildings:
-            warehouse = self._extract_warehouse_data(element, elements)
+            warehouse = self._extract_warehouse_data(
+                element, elements,
+                include_building_types, exclude_building_types,
+                min_area_sq_ft, use_precise_area
+            )
             if warehouse:
                 warehouses.append(warehouse)
 
+        print(f"After filtering: {len(warehouses)} buildings match criteria")
+
         return warehouses
 
-    def _extract_warehouse_data(self, element: Dict, all_elements: List[Dict]) -> Optional[Dict]:
+    def _extract_warehouse_data(
+        self,
+        element: Dict,
+        all_elements: List[Dict],
+        include_building_types: Optional[List[str]] = None,
+        exclude_building_types: Optional[List[str]] = None,
+        min_area_sq_ft: Optional[float] = None,
+        use_precise_area: bool = False
+    ) -> Optional[Dict]:
         """
         Extract relevant warehouse data from an OSM element
 
         Args:
             element: OSM element (way or relation)
             all_elements: All elements from the query (for node lookups)
+            include_building_types: Building types to include
+            exclude_building_types: Building types to exclude
+            min_area_sq_ft: Minimum area filter
+            use_precise_area: Use precise area calculation
 
         Returns:
-            Dictionary with warehouse data or None
+            Dictionary with warehouse data or None (if filtered out)
         """
         tags = element.get("tags", {})
+        building_type = tags.get("building", "")
 
-        # Calculate centroid from nodes
-        lat, lon = self._calculate_centroid(element, all_elements)
-
-        if lat is None or lon is None:
+        # Filter by building type exclusions
+        if exclude_building_types and building_type in exclude_building_types:
             return None
+
+        # Get node coordinates for area calculation
+        coords = self._get_building_coordinates(element, all_elements)
+        if not coords:
+            return None
+
+        # Calculate area if needed
+        area_sq_ft = None
+        if min_area_sq_ft is not None or True:  # Always calculate for storage
+            if use_precise_area:
+                area_sq_ft = self._calculate_polygon_area(coords)
+            else:
+                area_sq_ft = self._calculate_bounding_box_area(coords)
+
+        # Filter by building type inclusions (if min_area is set, we got all buildings)
+        if min_area_sq_ft is not None:
+            # When filtering by area, check both type and size
+            if include_building_types and building_type not in include_building_types:
+                # Not in include list, check if it meets size requirement
+                if area_sq_ft is None or area_sq_ft < min_area_sq_ft:
+                    return None
+            elif area_sq_ft is None or area_sq_ft < min_area_sq_ft:
+                # In include list or no include list, but doesn't meet size
+                return None
+
+        # Calculate centroid from coordinates
+        lat = sum(c[0] for c in coords) / len(coords)
+        lon = sum(c[1] for c in coords) / len(coords)
 
         warehouse = {
             "osm_id": f"{element['type']}/{element['id']}",
@@ -109,12 +198,116 @@ class WarehouseFinder:
             "name": tags.get("name", ""),
             "address": self._build_address(tags),
             "owner": tags.get("owner", tags.get("operator", "")),
-            "building_type": tags.get("building", "warehouse"),
+            "building_type": building_type,
+            "area_sq_ft": area_sq_ft if area_sq_ft is not None else 0.0,
             "last_updated": datetime.utcnow().isoformat(),
             "search_timestamp": datetime.utcnow().isoformat(),
         }
 
         return warehouse
+
+    def _get_building_coordinates(self, element: Dict, all_elements: List[Dict]) -> List[Tuple[float, float]]:
+        """
+        Get the coordinates of all nodes that define a building
+
+        Args:
+            element: OSM element (way or relation)
+            all_elements: All elements from the query (for node lookups)
+
+        Returns:
+            List of (lat, lon) tuples
+        """
+        # For ways, get nodes from the 'nodes' list
+        if element["type"] == "way":
+            node_ids = element.get("nodes", [])
+        else:
+            # For relations, this is more complex - would need to parse members
+            return []
+
+        # Build a map of node IDs to coordinates
+        node_map = {e["id"]: e for e in all_elements if e["type"] == "node"}
+
+        # Get coordinates for all nodes
+        coords = []
+        for node_id in node_ids:
+            if node_id in node_map:
+                node = node_map[node_id]
+                coords.append((node["lat"], node["lon"]))
+
+        return coords
+
+    def _calculate_bounding_box_area(self, coords: List[Tuple[float, float]]) -> float:
+        """
+        Calculate approximate area using bounding box (fast but less accurate)
+
+        Args:
+            coords: List of (lat, lon) tuples
+
+        Returns:
+            Area in square feet
+        """
+        if len(coords) < 3:
+            return 0.0
+
+        lats = [c[0] for c in coords]
+        lons = [c[1] for c in coords]
+
+        min_lat, max_lat = min(lats), max(lats)
+        min_lon, max_lon = min(lons), max(lons)
+
+        # Convert lat/lon differences to meters
+        # Latitude: approximately constant
+        height_meters = (max_lat - min_lat) * METERS_PER_DEGREE_LAT
+
+        # Longitude: varies by latitude, use average latitude
+        avg_lat = (min_lat + max_lat) / 2
+        meters_per_degree_lon = METERS_PER_DEGREE_LAT * abs(((avg_lat * 3.14159) / 180))
+        width_meters = (max_lon - min_lon) * meters_per_degree_lon
+
+        # Calculate area in square meters, then convert to square feet
+        area_sq_meters = height_meters * width_meters
+        area_sq_ft = area_sq_meters * SQ_FEET_PER_SQ_METER
+
+        return area_sq_ft
+
+    def _calculate_polygon_area(self, coords: List[Tuple[float, float]]) -> float:
+        """
+        Calculate precise area using Shoelace formula (slower but accurate)
+
+        Args:
+            coords: List of (lat, lon) tuples
+
+        Returns:
+            Area in square feet
+        """
+        if len(coords) < 3:
+            return 0.0
+
+        # Convert all coordinates to meters relative to first point
+        first_lat, first_lon = coords[0]
+        meters_per_degree_lon = METERS_PER_DEGREE_LAT * abs(((first_lat * 3.14159) / 180))
+
+        # Convert to (x, y) in meters
+        points_meters = []
+        for lat, lon in coords:
+            x = (lon - first_lon) * meters_per_degree_lon
+            y = (lat - first_lat) * METERS_PER_DEGREE_LAT
+            points_meters.append((x, y))
+
+        # Apply Shoelace formula
+        area = 0.0
+        n = len(points_meters)
+        for i in range(n):
+            j = (i + 1) % n
+            area += points_meters[i][0] * points_meters[j][1]
+            area -= points_meters[j][0] * points_meters[i][1]
+
+        area = abs(area) / 2.0  # Area in square meters
+
+        # Convert to square feet
+        area_sq_ft = area * SQ_FEET_PER_SQ_METER
+
+        return area_sq_ft
 
     def _calculate_centroid(self, element: Dict, all_elements: List[Dict]) -> Tuple[Optional[float], Optional[float]]:
         """
@@ -261,16 +454,53 @@ def main():
 
     # Example: Search for warehouses in Los Angeles area
     # Downtown LA coordinates
-    lat = 34.0522
-    lon = -118.2437
+    # lat = 34.0522
+    # lon = -118.2437
+    # radius_meters = 10000  # 10km radius
+
+    # Central Massachusetts area
+    lat = 42.251
+    lon = -71.865
+
+    # Cranbury, NJ
+    # lat = 40.3 
+    # lon = -74.5 
+    
     radius_meters = 10000  # 10km radius
 
     # Initialize finder - stores in data/ directory
     db_path = DATA_DIR / "warehouses.parquet"
     finder = WarehouseFinder(db_path=str(db_path))
 
-    # Search for warehouses
-    warehouses = finder.search_warehouses(lat, lon, radius_meters)
+    # Example 1: Search for specific building types
+    # print("=== Example 1: Specific building types ===")
+    # warehouses = finder.search_warehouses(
+    #     lat, lon, radius_meters,
+    #     include_building_types=['warehouse', 'industrial'],
+    #     exclude_building_types=['office', 'retail']
+    # )
+
+    # Example 2: Search for large buildings (100,000+ sq ft) of any type
+    print("=== Example 2: Large buildings (100,000+ sq ft) ===")
+    warehouses = finder.search_warehouses(
+        lat, lon, radius_meters,
+        include_building_types=['warehouse', 'industrial', 'retail'],  # Limit to likely warehouse types
+        exclude_building_types=['office', 'residential'],  # Exclude non-warehouse types
+        min_area_sq_ft=100000,
+        use_precise_area=True  # Use Shoelace formula for accuracy
+    )
+    print(f"\nFound buildings with area >= 100,000 sq ft:")
+    for w in warehouses:
+        print(f"  - {w['name'] or 'Unnamed'}: {w['area_sq_ft']:,.0f} sq ft ({w['building_type']})")
+
+    # Example 3: Search for large warehouse/industrial buildings, excluding offices
+    # warehouses = finder.search_warehouses(
+    #     lat, lon, radius_meters,
+    #     include_building_types=['warehouse', 'industrial'],
+    #     exclude_building_types=['office'],
+    #     min_area_sq_ft=50000,
+    #     use_precise_area=False  # Use faster bounding box estimation
+    # )
 
     # Update database
     finder.update_database(warehouses)

@@ -82,7 +82,8 @@ def create_warehouse_map(df: pd.DataFrame, use_clustering: bool = True) -> foliu
                 <tr><td><b>Coordinates:</b></td><td>{row['latitude']:.5f}, {row['longitude']:.5f}</td></tr>
             </table>
             <p style="margin: 10px 0 0 0; font-size: 10px; color: #666;">
-                <a href="https://www.openstreetmap.org/{row['osm_type']}/{row['osm_element_id']}" target="_blank">View on OpenStreetMap</a>
+                <a href="https://www.openstreetmap.org/{row['osm_type']}/{row['osm_element_id']}" target="_blank">View on OpenStreetMap</a><br>
+                <a href="https://www.google.com/maps?q={row['latitude']},{row['longitude']}" target="_blank">View on Google Maps</a>
             </p>
         </div>
         """

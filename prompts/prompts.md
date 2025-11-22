@@ -12,3 +12,22 @@ Great. Next. I want to build a script that generates and displays a map, with a 
 
 --
 
+This has worked great so far. However, I need debugging help. I changed the starter lat/lon cooordinates in warehouse_finder.py, centered right near an Amazon warehouse that is labelled as a warehouse. But, when I run the script, it reports finding zero warehouses. I don't know why it doesn't find any
+
+--
+
+So for the one I was trying to capture, the building type is industrial.
+
+For view_warehouses: I'd like to also add a link in the tooltip, under the link to the OSM map, that takes you to the same location (lat/lon) in Google Maps, as well.
+
+--
+
+So rather than add a boolean, I think I'd like to add a list of building types to include, and a list to exclude. 
+
+Ok, so far we filter based on building type. Next, I want the option to *also* ID and store large buildings (which in many cases are warehouses) by building size. I am thinking that a quick algorithm is to simply take the min/max of the lat/lon of all the nodes for a building, and multiply the differences to estimate maximum area. This doesn't give a precise meaurement of a building's area, but I think it would be a fast way to apply a rough filter for building size? I am open to other options that are fast but perhaps more precise. I'd like to define a min area size, like 100,000 sq ft. I'd like to also be able to define filters for exclusions, e.g. for buildings labeled as office buildings.
+
+--
+(This iteration took a long time to run, as it queried all buildings in an area)
+--
+
+Let's kill it. Does the query first filter for excluded building types, or does it first query for all buildings? I think it would be better to first filter by the exclusions
