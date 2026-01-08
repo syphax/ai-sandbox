@@ -6,22 +6,65 @@ Reads ZIP code (ZCTA) level data and aggregates to ZIP3 level with:
 - Total population (sum)
 - Population-weighted latitude and longitude
 - Count of unique ZIP5 codes in each ZIP3
+
+Supports multiple NHGIS dataset formats:
+- 2000 Census (ds146): Uses ZIP3A, FL5001, integer lat/lon format
+- 2020 Census (ds258): Uses ZCTAA (truncated), U7H001, decimal lat/lon format
 """
 
 import pandas as pd
 import logging
+import argparse
 from pathlib import Path
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Field mapping for different dataset formats
+DATASET_CONFIGS = {
+    '2000': {
+        'zip3_field': 'ZIP3A',
+        'zip5_field': 'ZCTAA',
+        'population_field': 'FL5001',
+        'lat_field': 'INTPTLAT',
+        'lon_field': 'INTPLON',  # Note: 2000 uses INTPLON (no 'T')
+        'lat_lon_format': 'integer',  # Integer format needs conversion
+    },
+    '2020': {
+        'zip3_field': None,  # Need to create from ZCTAA
+        'zip5_field': 'ZCTAA',
+        'population_field': 'U7H001',
+        'lat_field': 'INTPTLAT',
+        'lon_field': 'INTPTLON',  # Note: 2020 uses INTPTLON (with 'T')
+        'lat_lon_format': 'decimal',  # Already in decimal format
+    }
+}
 
-def convert_lat_lon(value):
+
+def detect_dataset_year(df):
     """
-    Convert integer lat/lon format to decimal degrees.
+    Auto-detect which dataset format we're working with based on column names.
 
-    Format: ±DDDDDDDDD where first 2 (lat) or 3 (lon) digits are integer degrees,
+    Args:
+        df: Input DataFrame
+
+    Returns:
+        str: Year identifier ('2000' or '2020')
+    """
+    if 'FL5001' in df.columns:
+        return '2000'
+    elif 'U7H001' in df.columns:
+        return '2020'
+    else:
+        raise ValueError("Unable to detect dataset format. Missing expected population fields.")
+
+
+def convert_lat_lon_integer(value):
+    """
+    Convert integer lat/lon format to decimal degrees (2000 format).
+
+    Format: Â±DDDDDDDDD where first 2 (lat) or 3 (lon) digits are integer degrees,
     rest are decimal fraction.
 
     Examples:
@@ -60,23 +103,64 @@ def convert_lat_lon(value):
         return None
 
 
-def main():
-    """Main processing function."""
+def convert_lat_lon_decimal(value):
+    """
+    Convert decimal lat/lon format (2020 format).
 
-    # Define paths
-    input_file = Path(__file__).parent.parent / 'data' / 'nhgis0002_ds146_2000_zcta.csv'
-    output_file = Path(__file__).parent.parent / 'data' / 'zip3_pop_2000.csv'
+    Format: Already in decimal degrees like "+18.1805555"
 
+    Examples:
+        +18.1805555 -> 18.1805555
+        -066.7499615 -> -66.7499615
+    """
+    try:
+        return float(value)
+    except Exception as e:
+        logger.warning(f"Error converting lat/lon value {value}: {e}")
+        return None
+
+
+def process_data(input_file, output_file, year=None):
+    """
+    Process ZCTA data and aggregate to ZIP3 level.
+
+    Args:
+        input_file: Path to input CSV file
+        output_file: Path to output CSV file
+        year: Optional year identifier ('2000' or '2020'). If None, auto-detect.
+    """
     logger.info(f"Reading input file: {input_file}")
 
     # Read the data
     df = pd.read_csv(input_file)
     logger.info(f"Loaded {len(df):,} records")
 
+    # Auto-detect year if not provided
+    if year is None:
+        year = detect_dataset_year(df)
+        logger.info(f"Auto-detected dataset format: {year}")
+    else:
+        logger.info(f"Using specified dataset format: {year}")
+
+    # Get configuration for this dataset
+    config = DATASET_CONFIGS[year]
+
+    # Create ZIP3 field if it doesn't exist
+    if config['zip3_field'] is None:
+        logger.info(f"Creating ZIP3 from {config['zip5_field']}")
+        df['zip3'] = df[config['zip5_field']].astype(str).str[:3]
+        zip3_field = 'zip3'
+    else:
+        zip3_field = config['zip3_field']
+
     # Convert lat/lon to decimal format
     logger.info("Converting latitude and longitude to decimal degrees...")
-    df['lat_decimal'] = df['INTPTLAT'].apply(convert_lat_lon)
-    df['lon_decimal'] = df['INTPTLON'].apply(convert_lat_lon)
+    if config['lat_lon_format'] == 'integer':
+        df['lat_decimal'] = df[config['lat_field']].apply(convert_lat_lon_integer)
+        df['lon_decimal'] = df[config['lon_field']].apply(convert_lat_lon_integer)
+    else:  # decimal format
+        df['lat_decimal'] = df[config['lat_field']].apply(convert_lat_lon_decimal)
+        df['lon_decimal'] = df[config['lon_field']].apply(convert_lat_lon_decimal)
 
     # Remove rows with invalid lat/lon
     initial_count = len(df)
@@ -85,28 +169,29 @@ def main():
         logger.warning(f"Removed {initial_count - len(df)} rows with invalid lat/lon")
 
     # Calculate weighted lat/lon (weight by population)
-    df['weighted_lat'] = df['lat_decimal'] * df['FL5001']
-    df['weighted_lon'] = df['lon_decimal'] * df['FL5001']
+    pop_field = config['population_field']
+    df['weighted_lat'] = df['lat_decimal'] * df[pop_field]
+    df['weighted_lon'] = df['lon_decimal'] * df[pop_field]
 
     logger.info("Aggregating to ZIP3 level...")
 
     # Group by ZIP3 and aggregate
-    zip3_data = df.groupby('ZIP3A').agg({
-        'FL5001': 'sum',  # Total population
+    zip3_data = df.groupby(zip3_field).agg({
+        pop_field: 'sum',  # Total population
         'weighted_lat': 'sum',
         'weighted_lon': 'sum',
-        'ZCTA5A': 'nunique'  # Count unique ZIP5 codes (assuming ZCTA5A is the ZIP5 column)
+        config['zip5_field']: 'nunique'  # Count unique ZIP5 codes
     }).reset_index()
 
     # Calculate population-weighted averages
-    zip3_data['latitude'] = zip3_data['weighted_lat'] / zip3_data['FL5001']
-    zip3_data['longitude'] = zip3_data['weighted_lon'] / zip3_data['FL5001']
+    zip3_data['latitude'] = zip3_data['weighted_lat'] / zip3_data[pop_field]
+    zip3_data['longitude'] = zip3_data['weighted_lon'] / zip3_data[pop_field]
 
     # Rename and select columns
     zip3_data = zip3_data.rename(columns={
-        'ZIP3A': 'zip3',
-        'FL5001': 'population',
-        'ZCTA5A': 'cnt_zip5'
+        zip3_field: 'zip3',
+        pop_field: 'population',
+        config['zip5_field']: 'cnt_zip5'
     })
 
     # Final output columns
@@ -126,6 +211,61 @@ def main():
     # Display sample
     print("\nSample of output data:")
     print(zip3_data.head(10).to_string(index=False))
+
+    return zip3_data
+
+
+def main():
+    """Main entry point with command-line argument parsing."""
+    parser = argparse.ArgumentParser(
+        description='Process NHGIS ZCTA data to create ZIP3-level population dataset.'
+    )
+    parser.add_argument(
+        'input_file',
+        type=str,
+        nargs='?',
+        help='Input CSV file path (relative to data/ directory or absolute path)'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        type=str,
+        help='Output CSV file path (relative to data/ directory or absolute path)'
+    )
+    parser.add_argument(
+        '-y', '--year',
+        type=str,
+        choices=['2000', '2020'],
+        help='Dataset year (auto-detected if not specified)'
+    )
+
+    args = parser.parse_args()
+
+    # Determine input file
+    if args.input_file:
+        input_path = Path(args.input_file)
+        if not input_path.is_absolute():
+            input_path = Path(__file__).parent.parent / 'data' / args.input_file
+    else:
+        # Default to 2000 data
+        input_path = Path(__file__).parent.parent / 'data' / 'nhgis0002_ds146_2000_zcta.csv'
+
+    # Determine output file
+    if args.output:
+        output_path = Path(args.output)
+        if not output_path.is_absolute():
+            output_path = Path(__file__).parent.parent / 'data' / args.output
+    else:
+        # Auto-generate output filename based on input
+        if '2000' in input_path.name:
+            output_filename = 'zip3_pop_2000.csv'
+        elif '2020' in input_path.name:
+            output_filename = 'zip3_pop_2020.csv'
+        else:
+            output_filename = 'zip3_pop.csv'
+        output_path = Path(__file__).parent.parent / 'data' / output_filename
+
+    # Process the data
+    process_data(input_path, output_path, args.year)
 
 
 if __name__ == '__main__':
