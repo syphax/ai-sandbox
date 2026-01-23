@@ -31,3 +31,9 @@ Ok, so far we filter based on building type. Next, I want the option to *also* I
 --
 
 Let's kill it. Does the query first filter for excluded building types, or does it first query for all buildings? I think it would be better to first filter by the exclusions
+
+--
+# Prompt 9: Add config file:
+In data_builders/warehouse_finder.py, we currently hard-ocde a lat, lon, and radius. I'd like to add a config file (YAML) where we can add more then one set of lat/lon/radii. And, we should have a parameter called name for each set. The script should read this YAML file and loop through each set of parameters, which are structured as a dict.
+
+The config file should be called warehouse_finger.yaml, and be in a cfg directory which is on the same level as the data_builders directory.

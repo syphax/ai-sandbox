@@ -9,6 +9,7 @@ import requests
 import pandas as pd
 import os
 import math
+import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Set
 from datetime import datetime
@@ -17,6 +18,9 @@ from datetime import datetime
 # Default data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
+
+# Config file path
+CONFIG_FILE = Path(__file__).parent.parent / "cfg" / "warehouse_finder.yaml"
 
 # Conversion constants
 METERS_PER_DEGREE_LAT = 111320  # Approximately constant
@@ -450,64 +454,61 @@ class WarehouseFinder:
 
 
 def main():
-    """Example usage of the WarehouseFinder"""
+    """Search for warehouses using locations defined in config file"""
 
-    # Example: Search for warehouses in Los Angeles area
-    # Downtown LA coordinates
-    # lat = 34.0522
-    # lon = -118.2437
-    # radius_meters = 10000  # 10km radius
+    # Load config file
+    if not CONFIG_FILE.exists():
+        print(f"Error: Config file not found at {CONFIG_FILE}")
+        return
 
-    # Central Massachusetts area
-    lat = 42.251
-    lon = -71.865
+    with open(CONFIG_FILE, "r") as f:
+        config = yaml.safe_load(f)
 
-    # Cranbury, NJ
-    # lat = 40.3 
-    # lon = -74.5 
-    
-    radius_meters = 10000  # 10km radius
+    locations = config.get("locations", [])
+    if not locations:
+        print("Error: No locations defined in config file")
+        return
 
     # Initialize finder - stores in data/ directory
     db_path = DATA_DIR / "warehouses.parquet"
     finder = WarehouseFinder(db_path=str(db_path))
 
-    # Example 1: Search for specific building types
-    # print("=== Example 1: Specific building types ===")
-    # warehouses = finder.search_warehouses(
-    #     lat, lon, radius_meters,
-    #     include_building_types=['warehouse', 'industrial'],
-    #     exclude_building_types=['office', 'retail']
-    # )
+    # Process each location from config
+    for location in locations:
+        name = location.get("name", "Unnamed")
+        lat = location.get("lat")
+        lon = location.get("lon")
+        radius_meters = location.get("radius_meters", 10000)
 
-    # Example 2: Search for large buildings (100,000+ sq ft) of any type
-    print("=== Example 2: Large buildings (100,000+ sq ft) ===")
-    warehouses = finder.search_warehouses(
-        lat, lon, radius_meters,
-        include_building_types=['warehouse', 'industrial', 'retail'],  # Limit to likely warehouse types
-        exclude_building_types=['office', 'residential'],  # Exclude non-warehouse types
-        min_area_sq_ft=100000,
-        use_precise_area=True  # Use Shoelace formula for accuracy
-    )
-    print(f"\nFound buildings with area >= 100,000 sq ft:")
-    for w in warehouses:
-        print(f"  - {w['name'] or 'Unnamed'}: {w['area_sq_ft']:,.0f} sq ft ({w['building_type']})")
+        if lat is None or lon is None:
+            print(f"Skipping '{name}': missing lat or lon")
+            continue
 
-    # Example 3: Search for large warehouse/industrial buildings, excluding offices
-    # warehouses = finder.search_warehouses(
-    #     lat, lon, radius_meters,
-    #     include_building_types=['warehouse', 'industrial'],
-    #     exclude_building_types=['office'],
-    #     min_area_sq_ft=50000,
-    #     use_precise_area=False  # Use faster bounding box estimation
-    # )
+        print(f"\n{'='*60}")
+        print(f"Searching: {name}")
+        print(f"  Center: ({lat}, {lon}), Radius: {radius_meters}m")
+        print(f"{'='*60}")
 
-    # Update database
-    finder.update_database(warehouses)
+        warehouses = finder.search_warehouses(
+            lat, lon, radius_meters,
+            include_building_types=['warehouse', 'industrial', 'retail'],
+            exclude_building_types=['office', 'residential'],
+            min_area_sq_ft=100000,
+            use_precise_area=True
+        )
 
-    # Show statistics
+        print(f"\nFound buildings with area >= 100,000 sq ft:")
+        for w in warehouses:
+            print(f"  - {w['name'] or 'Unnamed'}: {w['area_sq_ft']:,.0f} sq ft ({w['building_type']})")
+
+        # Update database with results from this location
+        finder.update_database(warehouses)
+
+    # Show final statistics
     stats = finder.get_statistics()
-    print("\nDatabase Statistics:")
+    print(f"\n{'='*60}")
+    print("Final Database Statistics:")
+    print(f"{'='*60}")
     for key, value in stats.items():
         print(f"  {key}: {value}")
 

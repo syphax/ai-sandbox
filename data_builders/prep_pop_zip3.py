@@ -15,6 +15,7 @@ Supports multiple NHGIS dataset formats:
 import pandas as pd
 import logging
 import argparse
+import csv
 from pathlib import Path
 
 # Set up logging
@@ -132,7 +133,8 @@ def process_data(input_file, output_file, year=None):
     logger.info(f"Reading input file: {input_file}")
 
     # Read the data
-    df = pd.read_csv(input_file)
+    # Force ZCTAA and related ZIP fields to be read as strings to preserve leading zeros
+    df = pd.read_csv(input_file, dtype={'ZCTAA': str, 'ZIP3A': str, 'ZCTA5A': str})
     logger.info(f"Loaded {len(df):,} records")
 
     # Auto-detect year if not provided
@@ -148,10 +150,15 @@ def process_data(input_file, output_file, year=None):
     # Create ZIP3 field if it doesn't exist
     if config['zip3_field'] is None:
         logger.info(f"Creating ZIP3 from {config['zip5_field']}")
-        df['zip3'] = df[config['zip5_field']].astype(str).str[:3]
+        # Strip quotes and whitespace, then take first 3 characters
+        df['zip3'] = df[config['zip5_field']].astype(str).str.strip().str.strip('"').str[:3]
+        # Ensure it's zero-padded to 3 characters
+        df['zip3'] = df['zip3'].str.zfill(3)
         zip3_field = 'zip3'
     else:
-        zip3_field = config['zip3_field']
+        # For 2000 data, ensure ZIP3A is also zero-padded string
+        df['zip3_normalized'] = df[config['zip3_field']].astype(str).str.strip().str.zfill(3)
+        zip3_field = 'zip3_normalized'
 
     # Convert lat/lon to decimal format
     logger.info("Converting latitude and longitude to decimal degrees...")
@@ -200,12 +207,16 @@ def process_data(input_file, output_file, year=None):
     # Sort by ZIP3
     zip3_data = zip3_data.sort_values('zip3')
 
+    # Ensure zip3 is stored as zero-padded string in output
+    zip3_data['zip3'] = zip3_data['zip3'].astype(str).str.zfill(3)
+
     logger.info(f"Created {len(zip3_data):,} ZIP3 records")
     logger.info(f"Total population: {zip3_data['population'].sum():,.0f}")
 
     # Save to CSV
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    zip3_data.to_csv(output_file, index=False)
+    # Use QUOTE_NONNUMERIC to quote only zip3 field (string), not numeric fields
+    zip3_data.to_csv(output_file, index=False, quoting=csv.QUOTE_NONNUMERIC)
     logger.info(f"Saved output to: {output_file}")
 
     # Display sample

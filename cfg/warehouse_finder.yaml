@@ -1,0 +1,18 @@
+# Warehouse Finder Configuration
+# Each location defines a search area for warehouses
+
+locations:
+  # - name: Central Massachusetts
+  #   lat: 42.251
+  #   lon: -71.865
+  #   radius_meters: 10000
+
+  # - name: Cranbury NJ
+  #   lat: 40.3
+  #   lon: -74.5
+  #   radius_meters: 10000
+
+  - name: Charlotte NC
+    lat: 35.14
+    lon: -80.99
+    radius_meters: 10000
