@@ -1,0 +1,1215 @@
+brands:
+# BMW
+- Mercedes
+brand_slugs:
+  Mercedes: Mercedes~Benz-parts
+  BMW: BMW-parts
+  Volvo: Volvo-parts
+  VW: Volkswagen-parts
+  Audi: Audi-parts
+  Porsche: Porsche-parts
+settings:
+  min_delay_seconds: 2
+  max_delay_seconds: 5
+  max_pages: null
+  max_retries: 3
+  request_timeout: 30
+product_lines:
+  AC and Climate Control: true
+  Air Intake: true
+  Brake: true
+  Car Care and Detailing: true
+  Clutch and Flywheel: true
+  Cooling System: true
+  Drivetrain and Axle: true
+  Engine: true
+  Exhaust: true
+  Exterior Body: true
+  Fuel System: true
+  Interior Body: true
+  Merchandise and Accessories: true
+  Steering: true
+  Supplies and Hardware: true
+  Suspension: true
+  Tools: true
+  Transmission: true
+discovered_categories:
+  Mercedes:
+    primary:
+    - AC and Climate Control
+    - Air Intake
+    - Brake
+    - Car Care and Detailing
+    - Clutch and Flywheel
+    - Cooling System
+    - Drivetrain and Axle
+    - Engine
+    - Exhaust
+    - Exterior Body
+    - Fuel System
+    - Interior Body
+    - Merchandise and Accessories
+    - Steering
+    - Supplies and Hardware
+    - Suspension
+    - Tools
+    - Transmission
+    subcategories:
+      AC and Climate Control: []
+      Air Intake: []
+      Brake: []
+      Car Care and Detailing: []
+      Clutch and Flywheel: []
+      Cooling System: []
+      Drivetrain and Axle: []
+      Engine: []
+      Exhaust: []
+      Exterior Body: []
+      Fuel System: []
+      Interior Body: []
+      Merchandise and Accessories: []
+      Steering: []
+      Supplies and Hardware: []
+      Suspension: []
+      Tools: []
+      Transmission: []
+      180 parts: []
+      180D parts: []
+      180b parts: []
+      190 parts: []
+      190B parts: []
+      190C parts: []
+      190D parts: []
+      190DB parts: []
+      190DC parts: []
+      190E parts: []
+      190SL parts: []
+      200 parts: []
+      200D parts: []
+      219 parts: []
+      220 parts: []
+      220D parts: []
+      220S parts: []
+      220SE parts: []
+      220Sb parts: []
+      220b parts: []
+      230 parts: []
+      230S parts: []
+      230SL parts: []
+      240D parts: []
+      250 parts: []
+      250C parts: []
+      250S parts: []
+      250SE parts: []
+      250SEC parts: []
+      250SL parts: []
+      260E parts: []
+      280 parts: []
+      280C parts: []
+      280CE parts: []
+      280E parts: []
+      280S parts: []
+      280SE parts: []
+      280SEL parts: []
+      280SL parts: []
+      300 parts: []
+      300CD parts: []
+      300CE parts: []
+      300D parts: []
+      300E parts: []
+      300SC parts: []
+      300SD parts: []
+      300SDL parts: []
+      300SE parts: []
+      300SEL parts: []
+      300SL parts: []
+      300TD parts: []
+      300TE parts: []
+      350SD parts: []
+      350SDL parts: []
+      350SL parts: []
+      380SE parts: []
+      380SEC parts: []
+      380SEL parts: []
+      380SL parts: []
+      380SLC parts: []
+      400E parts: []
+      400SE parts: []
+      400SEL parts: []
+      420SEL parts: []
+      450SE parts: []
+      450SEL parts: []
+      450SL parts: []
+      450SLC parts: []
+      500E parts: []
+      500SEC parts: []
+      500SEL parts: []
+      500SL parts: []
+      560SEC parts: []
+      560SEL parts: []
+      560SL parts: []
+      600 parts: []
+      600SEC parts: []
+      600SEL parts: []
+      600SL parts: []
+      A220 parts: []
+      A35 AMG parts: []
+      AMG GT parts: []
+      AMG GT 43 parts: []
+      AMG GT 53 parts: []
+      AMG GT 55 parts: []
+      AMG GT 63 parts: []
+      AMG GT 63 Pro parts: []
+      AMG GT 63 S parts: []
+      AMG GT 63 S E Performance parts: []
+      AMG GT Black Series parts: []
+      AMG GT C parts: []
+      AMG GT R parts: []
+      AMG GT R Pro parts: []
+      AMG GT S parts: []
+      B Electric Drive parts: []
+      B250e parts: []
+      C220 parts: []
+      C230 parts: []
+      C240 parts: []
+      C250 parts: []
+      C280 parts: []
+      C300 parts: []
+      C32 AMG parts: []
+      C320 parts: []
+      C350 parts: []
+      C350e parts: []
+      C36 AMG parts: []
+      C400 parts: []
+      C43 AMG parts: []
+      C450 AMG parts: []
+      C55 AMG parts: []
+      C63 AMG parts: []
+      C63 AMG S parts: []
+      C63 AMG S E Performance parts: []
+      CL500 parts: []
+      CL55 AMG parts: []
+      CL550 parts: []
+      CL600 parts: []
+      CL63 AMG parts: []
+      CL65 AMG parts: []
+      CLA250 parts: []
+      CLA35 AMG parts: []
+      CLA45 AMG parts: []
+      CLA45 AMG S parts: []
+      CLE300 parts: []
+      CLE450 parts: []
+      CLE53 AMG parts: []
+      CLK320 parts: []
+      CLK350 parts: []
+      CLK430 parts: []
+      CLK500 parts: []
+      CLK55 AMG parts: []
+      CLK550 parts: []
+      CLK63 AMG parts: []
+      CLS400 parts: []
+      CLS450 parts: []
+      CLS500 parts: []
+      CLS53 AMG parts: []
+      CLS55 AMG parts: []
+      CLS550 parts: []
+      CLS63 AMG parts: []
+      CLS63 AMG S parts: []
+      E250 parts: []
+      E300 parts: []
+      E320 parts: []
+      E350 parts: []
+      E400 parts: []
+      E420 parts: []
+      E43 AMG parts: []
+      E430 parts: []
+      E450 parts: []
+      E500 parts: []
+      E53 AMG parts: []
+      E55 AMG parts: []
+      E550 parts: []
+      E63 AMG parts: []
+      E63 AMG S parts: []
+      EQB 250+ parts: []
+      EQB 300 parts: []
+      EQB 350 parts: []
+      EQE 350 parts: []
+      EQE 350 SUV parts: []
+      EQE 350+ parts: []
+      EQE 350+ SUV parts: []
+      EQE 500 parts: []
+      EQE 500 SUV parts: []
+      EQE AMG parts: []
+      EQE AMG SUV parts: []
+      EQE SUV AMG parts: []
+      EQS 450 parts: []
+      EQS 450 SUV parts: []
+      EQS 450+ parts: []
+      EQS 450+ SUV parts: []
+      EQS 580 parts: []
+      EQS 580 SUV parts: []
+      EQS AMG parts: []
+      G500 parts: []
+      G55 AMG parts: []
+      G550 parts: []
+      G550 4x4 parts: []
+      G580 parts: []
+      G63 4x4 Squared AMG parts: []
+      G63 AMG parts: []
+      G65 AMG parts: []
+      GL320 parts: []
+      GL350 parts: []
+      GL450 parts: []
+      GL550 parts: []
+      GL63 AMG parts: []
+      GLA250 parts: []
+      GLA35 AMG parts: []
+      GLA45 AMG parts: []
+      GLB250 parts: []
+      GLB35 AMG parts: []
+      GLC300 parts: []
+      GLC350e parts: []
+      GLC43 AMG parts: []
+      GLC63 AMG parts: []
+      GLC63 AMG S parts: []
+      GLC63 AMG S E Performance parts: []
+      GLE300d parts: []
+      GLE350 parts: []
+      GLE400 parts: []
+      GLE43 AMG parts: []
+      GLE450 parts: []
+      GLE450 AMG parts: []
+      GLE450 SUV parts: []
+      GLE450e parts: []
+      GLE53 AMG parts: []
+      GLE53 AMG SUV parts: []
+      GLE550e parts: []
+      GLE580 parts: []
+      GLE63 AMG parts: []
+      GLE63 AMG S parts: []
+      GLE63 AMG S SUV parts: []
+      GLK250 parts: []
+      GLK350 parts: []
+      GLS350d parts: []
+      GLS450 parts: []
+      GLS550 parts: []
+      GLS580 parts: []
+      GLS63 AMG parts: []
+      L1013 parts: []
+      L1113 parts: []
+      L1116 parts: []
+      L1117 parts: []
+      L1316 parts: []
+      L1317 parts: []
+      L1319 parts: []
+      L1413 parts: []
+      L1418 parts: []
+      LP1219 parts: []
+      LP1419 parts: []
+      LPS1525 parts: []
+      ML250 parts: []
+      ML320 parts: []
+      ML350 parts: []
+      ML400 parts: []
+      ML430 parts: []
+      ML450 parts: []
+      ML500 parts: []
+      ML55 AMG parts: []
+      ML550 parts: []
+      ML63 AMG parts: []
+      Maybach EQS 680 SUV parts: []
+      Maybach GLS600 parts: []
+      Maybach S550 parts: []
+      Maybach S560 parts: []
+      Maybach S580 parts: []
+      Maybach S600 parts: []
+      Maybach S650 parts: []
+      Maybach S680 parts: []
+      Maybach SL680 parts: []
+      Metris parts: []
+      R320 parts: []
+      R350 parts: []
+      R500 parts: []
+      R63 AMG parts: []
+      S320 parts: []
+      S350 parts: []
+      S400 parts: []
+      S420 parts: []
+      S430 parts: []
+      S450 parts: []
+      S500 parts: []
+      S55 AMG parts: []
+      S550 parts: []
+      S550e parts: []
+      S560 parts: []
+      S560e parts: []
+      S580 parts: []
+      S580e parts: []
+      S600 parts: []
+      S63 AMG parts: []
+      S63 AMG E Performance parts: []
+      S65 AMG parts: []
+      SL320 parts: []
+      SL400 parts: []
+      SL43 AMG parts: []
+      SL450 parts: []
+      SL500 parts: []
+      SL55 AMG parts: []
+      SL550 parts: []
+      SL600 parts: []
+      SL63 AMG parts: []
+      SL63 AMG S E Performance parts: []
+      SL65 AMG parts: []
+      SLC300 parts: []
+      SLC43 AMG parts: []
+      SLK230 parts: []
+      SLK250 parts: []
+      SLK280 parts: []
+      SLK300 parts: []
+      SLK32 AMG parts: []
+      SLK320 parts: []
+      SLK350 parts: []
+      SLK55 AMG parts: []
+      SLR McLaren parts: []
+      SLS AMG parts: []
+      Sprinter 1500 parts: []
+      Sprinter 2500 parts: []
+      Sprinter 3500 parts: []
+      Sprinter 3500XD parts: []
+      Sprinter 4500 parts: []
+      eSprinter parts: []
+  BMW:
+    primary:
+    - AC and Climate Control
+    - Air Intake
+    - Brake
+    - Car Care and Detailing
+    - Clutch and Flywheel
+    - Cooling System
+    - Drivetrain and Axle
+    - Engine
+    - Exhaust
+    - Exterior Body
+    - Fuel System
+    - Interior Body
+    - Merchandise and Accessories
+    - Steering
+    - Supplies and Hardware
+    - Suspension
+    - Tools
+    - Transmission
+    subcategories:
+      AC and Climate Control: []
+      Air Intake: []
+      Brake: []
+      Car Care and Detailing: []
+      Clutch and Flywheel: []
+      Cooling System: []
+      Drivetrain and Axle: []
+      Engine: []
+      Exhaust: []
+      Exterior Body: []
+      Fuel System: []
+      Interior Body: []
+      Merchandise and Accessories: []
+      Steering: []
+      Supplies and Hardware: []
+      Suspension: []
+      Tools: []
+      Transmission: []
+      1 Series M parts: []
+      128i parts: []
+      135i parts: []
+      135is parts: []
+      1500 parts: []
+      1600 parts: []
+      1600-2 parts: []
+      1600ti parts: []
+      1602 parts: []
+      1800 parts: []
+      1800ti parts: []
+      1802 parts: []
+      2.8 Bavaria parts: []
+      2000 parts: []
+      2000c parts: []
+      2000cs parts: []
+      2000ti parts: []
+      2000tii parts: []
+      2002 parts: []
+      2002ti parts: []
+      2002tii parts: []
+      228 xDrive Gran Coupe parts: []
+      228i parts: []
+      228i Gran Coupe parts: []
+      228i xDrive parts: []
+      228i xDrive Gran Coupe parts: []
+      230i parts: []
+      230i xDrive parts: []
+      2500 parts: []
+      2800 parts: []
+      2800CS parts: []
+      3.0CS parts: []
+      3.0CSL parts: []
+      3.0CSi parts: []
+      3.0S parts: []
+      3.0Si parts: []
+      318i parts: []
+      318is parts: []
+      318ti parts: []
+      320i parts: []
+      320i xDrive parts: []
+      323Ci parts: []
+      323i parts: []
+      323is parts: []
+      325 parts: []
+      325Ci parts: []
+      325e parts: []
+      325es parts: []
+      325i parts: []
+      325iX parts: []
+      325is parts: []
+      325xi parts: []
+      328Ci parts: []
+      328d parts: []
+      328d xDrive parts: []
+      328i parts: []
+      328i GT xDrive parts: []
+      328i xDrive parts: []
+      328is parts: []
+      328xi parts: []
+      330Ci parts: []
+      330e parts: []
+      330e xDrive parts: []
+      330i parts: []
+      330i GT xDrive parts: []
+      330i xDrive parts: []
+      330xi parts: []
+      335d parts: []
+      335i parts: []
+      335i GT xDrive parts: []
+      335i xDrive parts: []
+      335is parts: []
+      335xi parts: []
+      340i parts: []
+      340i GT xDrive parts: []
+      340i xDrive parts: []
+      428i parts: []
+      428i Gran Coupe parts: []
+      428i xDrive parts: []
+      428i xDrive Gran Coupe parts: []
+      430i parts: []
+      430i Gran Coupe parts: []
+      430i xDrive parts: []
+      430i xDrive Gran Coupe parts: []
+      435i parts: []
+      435i Gran Coupe parts: []
+      435i xDrive parts: []
+      435i xDrive Gran Coupe parts: []
+      440i parts: []
+      440i Gran Coupe parts: []
+      440i xDrive parts: []
+      440i xDrive Gran Coupe parts: []
+      501 parts: []
+      502 parts: []
+      503 parts: []
+      524td parts: []
+      525i parts: []
+      525iT parts: []
+      525xi parts: []
+      528e parts: []
+      528i parts: []
+      528i xDrive parts: []
+      528xi parts: []
+      530e parts: []
+      530e xDrive parts: []
+      530i parts: []
+      530i xDrive parts: []
+      530xi parts: []
+      533i parts: []
+      535d parts: []
+      535d xDrive parts: []
+      535i parts: []
+      535i GT parts: []
+      535i GT xDrive parts: []
+      535i xDrive parts: []
+      535is parts: []
+      535xi parts: []
+      540d xDrive parts: []
+      540i parts: []
+      540i xDrive parts: []
+      545i parts: []
+      550e xDrive parts: []
+      550i parts: []
+      550i GT parts: []
+      550i GT xDrive parts: []
+      550i xDrive parts: []
+      630CSi parts: []
+      633CSi parts: []
+      635CSi parts: []
+      640i parts: []
+      640i Gran Coupe parts: []
+      640i xDrive parts: []
+      640i xDrive Gran Coupe parts: []
+      640i xDrive Gran Turismo parts: []
+      645Ci parts: []
+      650i parts: []
+      650i Gran Coupe parts: []
+      650i xDrive parts: []
+      650i xDrive Gran Coupe parts: []
+      733i parts: []
+      735i parts: []
+      735iL parts: []
+      740Ld xDrive parts: []
+      740Li parts: []
+      740Li xDrive parts: []
+      740e xDrive parts: []
+      740i parts: []
+      740i xDrive parts: []
+      740iL parts: []
+      745Li parts: []
+      745e xDrive parts: []
+      745i parts: []
+      750Li parts: []
+      750Li xDrive parts: []
+      750e xDrive parts: []
+      750i parts: []
+      750i xDrive parts: []
+      750iL parts: []
+      760Li parts: []
+      760i parts: []
+      760i xDrive parts: []
+      840Ci parts: []
+      840i parts: []
+      840i Gran Coupe parts: []
+      840i xDrive parts: []
+      840i xDrive Gran Coupe parts: []
+      850CSi parts: []
+      850Ci parts: []
+      850i parts: []
+      ActiveHybrid 3 parts: []
+      ActiveHybrid 5 parts: []
+      ActiveHybrid 7 parts: []
+      Alpina B6 xDrive Gran Coupe parts: []
+      Alpina B7 parts: []
+      Alpina B7 xDrive parts: []
+      Alpina B7L parts: []
+      Alpina B7L xDrive parts: []
+      Alpina B8 Gran Coupe parts: []
+      Alpina XB7 parts: []
+      Bavaria parts: []
+      Isetta parts: []
+      L6 parts: []
+      L7 parts: []
+      M2 parts: []
+      M235 xDrive Gran Coupe parts: []
+      M235i parts: []
+      M235i xDrive parts: []
+      M235i xDrive Gran Coupe parts: []
+      M240i parts: []
+      M240i xDrive parts: []
+      M3 parts: []
+      M340i parts: []
+      M340i xDrive parts: []
+      M4 parts: []
+      M440i parts: []
+      M440i Gran Coupe parts: []
+      M440i xDrive parts: []
+      M440i xDrive Gran Coupe parts: []
+      M5 parts: []
+      M5 Touring parts: []
+      M550i xDrive parts: []
+      M6 parts: []
+      M6 Gran Coupe parts: []
+      M760i xDrive parts: []
+      M8 parts: []
+      M8 Gran Coupe parts: []
+      M850i xDrive parts: []
+      M850i xDrive Gran Coupe parts: []
+      X1 parts: []
+      X2 parts: []
+      X3 parts: []
+      X4 parts: []
+      X5 parts: []
+      X6 parts: []
+      X7 parts: []
+      XM parts: []
+      Z3 parts: []
+      Z4 parts: []
+      Z8 parts: []
+      i3 parts: []
+      i3s parts: []
+      i4 parts: []
+      i5 parts: []
+      i7 parts: []
+      i8 parts: []
+      iX parts: []
+  Volvo:
+    primary:
+    - AC and Climate Control
+    - Air Intake
+    - Brake
+    - Car Care and Detailing
+    - Clutch and Flywheel
+    - Cooling System
+    - Drivetrain and Axle
+    - Engine
+    - Exhaust
+    - Exterior Body
+    - Fuel System
+    - Interior Body
+    - Merchandise and Accessories
+    - Steering
+    - Supplies and Hardware
+    - Suspension
+    - Tools
+    - Transmission
+    - 122 parts
+    - 142 parts
+    - 144 parts
+    - 145 parts
+    - 164 parts
+    - 1800 parts
+    - 240 parts
+    - 242 parts
+    - 244 parts
+    - 245 parts
+    - 262 parts
+    - 264 parts
+    - 265 parts
+    - 544 parts
+    - 740 parts
+    - 745 parts
+    - 760 parts
+    - 780 parts
+    - 850 parts
+    - 940 parts
+    - 960 parts
+    - C30 parts
+    - C40 Recharge parts
+    - C70 parts
+    - EC40 parts
+    - EX30 parts
+    - EX40 parts
+    - EX90 parts
+    - S40 parts
+    - S60 parts
+    - S60 Cross Country parts
+    - S70 parts
+    - S80 parts
+    - S90 parts
+    - V40 parts
+    - V50 parts
+    - V60 parts
+    - V60 Cross Country parts
+    - V70 parts
+    - V90 parts
+    - V90 Cross Country parts
+    - XC40 parts
+    - XC40 Recharge parts
+    - XC60 parts
+    - XC70 parts
+    - XC90 parts
+    subcategories:
+      AC and Climate Control: []
+      Air Intake: []
+      Brake: []
+      Car Care and Detailing: []
+      Clutch and Flywheel: []
+      Cooling System: []
+      Drivetrain and Axle: []
+      Engine: []
+      Exhaust: []
+      Exterior Body: []
+      Fuel System: []
+      Interior Body: []
+      Merchandise and Accessories: []
+      Steering: []
+      Supplies and Hardware: []
+      Suspension: []
+      Tools: []
+      Transmission: []
+      122 parts: []
+      142 parts: []
+      144 parts: []
+      145 parts: []
+      164 parts: []
+      1800 parts: []
+      240 parts: []
+      242 parts: []
+      244 parts: []
+      245 parts: []
+      262 parts: []
+      264 parts: []
+      265 parts: []
+      544 parts: []
+      740 parts: []
+      745 parts: []
+      760 parts: []
+      780 parts: []
+      850 parts: []
+      940 parts: []
+      960 parts: []
+      C30 parts: []
+      C40 Recharge parts: []
+      C70 parts: []
+      EC40 parts: []
+      EX30 parts: []
+      EX40 parts: []
+      EX90 parts: []
+      S40 parts: []
+      S60 parts: []
+      S60 Cross Country parts: []
+      S70 parts: []
+      S80 parts: []
+      S90 parts: []
+      V40 parts: []
+      V50 parts: []
+      V60 parts: []
+      V60 Cross Country parts: []
+      V70 parts: []
+      V90 parts: []
+      V90 Cross Country parts: []
+      XC40 parts: []
+      XC40 Recharge parts: []
+      XC60 parts: []
+      XC70 parts: []
+      XC90 parts: []
+  VW:
+    primary:
+    - AC and Climate Control
+    - Air Intake
+    - Brake
+    - Car Care and Detailing
+    - Clutch and Flywheel
+    - Cooling System
+    - Drivetrain and Axle
+    - Engine
+    - Exhaust
+    - Exterior Body
+    - Fuel System
+    - Interior Body
+    - Merchandise and Accessories
+    - Steering
+    - Supplies and Hardware
+    - Suspension
+    - Tools
+    - Transmission
+    - 411 parts
+    - 412 parts
+    - Arteon parts
+    - Atlas parts
+    - Atlas Cross Sport parts
+    - Beetle parts
+    - CC parts
+    - Cabrio parts
+    - Cabriolet parts
+    - Campmobile parts
+    - Corrado parts
+    - Dasher parts
+    - Eos parts
+    - EuroVan parts
+    - Fastback parts
+    - Fox parts
+    - GTI parts
+    - Golf parts
+    - Golf Alltrack parts
+    - Golf R parts
+    - Golf SportWagen parts
+    - ID. Buzz parts
+    - ID.4 parts
+    - Jetta parts
+    - Karmann Ghia parts
+    - Passat parts
+    - Phaeton parts
+    - Quantum parts
+    - R32 parts
+    - Rabbit parts
+    - Rabbit Convertible parts
+    - Rabbit Pickup parts
+    - Routan parts
+    - Scirocco parts
+    - Squareback parts
+    - Super Beetle parts
+    - Taos parts
+    - Thing parts
+    - Tiguan parts
+    - Tiguan Limited parts
+    - Touareg parts
+    - Transporter parts
+    - Vanagon parts
+    - e-Golf parts
+    subcategories:
+      AC and Climate Control: []
+      Air Intake: []
+      Brake: []
+      Car Care and Detailing: []
+      Clutch and Flywheel: []
+      Cooling System: []
+      Drivetrain and Axle: []
+      Engine: []
+      Exhaust: []
+      Exterior Body: []
+      Fuel System: []
+      Interior Body: []
+      Merchandise and Accessories: []
+      Steering: []
+      Supplies and Hardware: []
+      Suspension: []
+      Tools: []
+      Transmission: []
+      411 parts: []
+      412 parts: []
+      Arteon parts: []
+      Atlas parts: []
+      Atlas Cross Sport parts: []
+      Beetle parts: []
+      CC parts: []
+      Cabrio parts: []
+      Cabriolet parts: []
+      Campmobile parts: []
+      Corrado parts: []
+      Dasher parts: []
+      Eos parts: []
+      EuroVan parts: []
+      Fastback parts: []
+      Fox parts: []
+      GTI parts: []
+      Golf parts: []
+      Golf Alltrack parts: []
+      Golf R parts: []
+      Golf SportWagen parts: []
+      ID. Buzz parts: []
+      ID.4 parts: []
+      Jetta parts: []
+      Karmann Ghia parts: []
+      Passat parts: []
+      Phaeton parts: []
+      Quantum parts: []
+      R32 parts: []
+      Rabbit parts: []
+      Rabbit Convertible parts: []
+      Rabbit Pickup parts: []
+      Routan parts: []
+      Scirocco parts: []
+      Squareback parts: []
+      Super Beetle parts: []
+      Taos parts: []
+      Thing parts: []
+      Tiguan parts: []
+      Tiguan Limited parts: []
+      Touareg parts: []
+      Transporter parts: []
+      Vanagon parts: []
+      e-Golf parts: []
+  Audi:
+    primary:
+    - AC and Climate Control
+    - Air Intake
+    - Brake
+    - Car Care and Detailing
+    - Clutch and Flywheel
+    - Cooling System
+    - Drivetrain and Axle
+    - Engine
+    - Exhaust
+    - Exterior Body
+    - Fuel System
+    - Interior Body
+    - Merchandise and Accessories
+    - Steering
+    - Supplies and Hardware
+    - Suspension
+    - Tools
+    - Transmission
+    - 100 parts
+    - 100 Quattro parts
+    - 100 Series parts
+    - 200 parts
+    - 200 Quattro parts
+    - 4000 parts
+    - 4000 Quattro parts
+    - 5000 parts
+    - 5000 Quattro parts
+    - 80 parts
+    - 80 Quattro parts
+    - 90 parts
+    - 90 Quattro parts
+    - A3 parts
+    - A3 Quattro parts
+    - A3 Sportback e-tron parts
+    - A4 parts
+    - A4 Quattro parts
+    - A4 allroad parts
+    - A5 parts
+    - A5 Quattro parts
+    - A5 Sportback parts
+    - A6 parts
+    - A6 Quattro parts
+    - A6 Sportback e-tron parts
+    - A6 Sportback e-tron Quattro parts
+    - A6 allroad parts
+    - A7 Quattro parts
+    - A7 Sportback parts
+    - A8 parts
+    - A8 Quattro parts
+    - Allroad Quattro parts
+    - Cabriolet parts
+    - Coupe parts
+    - Coupe Quattro parts
+    - Fox parts
+    - Q3 parts
+    - Q3 Quattro parts
+    - Q4 e-tron parts
+    - Q4 e-tron Sportback parts
+    - Q5 parts
+    - Q5 PHEV parts
+    - Q5 Sportback parts
+    - Q6 e-tron parts
+    - Q6 e-tron Sportback parts
+    - Q7 parts
+    - Q8 parts
+    - Q8 e-tron parts
+    - Q8 e-tron Sportback parts
+    - Quattro parts
+    - R8 parts
+    - RS Q8 parts
+    - RS e-tron GT parts
+    - RS e-tron GT Performance parts
+    - RS3 parts
+    - RS4 parts
+    - RS5 parts
+    - RS5 Sportback parts
+    - RS6 parts
+    - RS6 Avant parts
+    - RS7 parts
+    - RS7 Sportback parts
+    - S e-tron GT parts
+    - S3 parts
+    - S4 parts
+    - S5 parts
+    - S5 Sportback parts
+    - S6 parts
+    - S6 Sportback e-tron parts
+    - S7 parts
+    - S7 Sportback parts
+    - S8 parts
+    - SQ5 parts
+    - SQ5 Sportback parts
+    - SQ6 e-tron parts
+    - SQ6 e-tron Sportback parts
+    - SQ7 parts
+    - SQ8 parts
+    - SQ8 e-tron parts
+    - SQ8 e-tron Sportback parts
+    - Super 90 parts
+    - TT parts
+    - TT Quattro parts
+    - TT RS Quattro parts
+    - TTS Quattro parts
+    - V8 Quattro parts
+    - allroad parts
+    - e-tron GT parts
+    - e-tron Quattro parts
+    - e-tron S parts
+    - e-tron S Sportback parts
+    - e-tron Sportback parts
+    subcategories:
+      AC and Climate Control: []
+      Air Intake: []
+      Brake: []
+      Car Care and Detailing: []
+      Clutch and Flywheel: []
+      Cooling System: []
+      Drivetrain and Axle: []
+      Engine: []
+      Exhaust: []
+      Exterior Body: []
+      Fuel System: []
+      Interior Body: []
+      Merchandise and Accessories: []
+      Steering: []
+      Supplies and Hardware: []
+      Suspension: []
+      Tools: []
+      Transmission: []
+      100 parts: []
+      100 Quattro parts: []
+      100 Series parts: []
+      200 parts: []
+      200 Quattro parts: []
+      4000 parts: []
+      4000 Quattro parts: []
+      5000 parts: []
+      5000 Quattro parts: []
+      80 parts: []
+      80 Quattro parts: []
+      90 parts: []
+      90 Quattro parts: []
+      A3 parts: []
+      A3 Quattro parts: []
+      A3 Sportback e-tron parts: []
+      A4 parts: []
+      A4 Quattro parts: []
+      A4 allroad parts: []
+      A5 parts: []
+      A5 Quattro parts: []
+      A5 Sportback parts: []
+      A6 parts: []
+      A6 Quattro parts: []
+      A6 Sportback e-tron parts: []
+      A6 Sportback e-tron Quattro parts: []
+      A6 allroad parts: []
+      A7 Quattro parts: []
+      A7 Sportback parts: []
+      A8 parts: []
+      A8 Quattro parts: []
+      Allroad Quattro parts: []
+      Cabriolet parts: []
+      Coupe parts: []
+      Coupe Quattro parts: []
+      Fox parts: []
+      Q3 parts: []
+      Q3 Quattro parts: []
+      Q4 e-tron parts: []
+      Q4 e-tron Sportback parts: []
+      Q5 parts: []
+      Q5 PHEV parts: []
+      Q5 Sportback parts: []
+      Q6 e-tron parts: []
+      Q6 e-tron Sportback parts: []
+      Q7 parts: []
+      Q8 parts: []
+      Q8 e-tron parts: []
+      Q8 e-tron Sportback parts: []
+      Quattro parts: []
+      R8 parts: []
+      RS Q8 parts: []
+      RS e-tron GT parts: []
+      RS e-tron GT Performance parts: []
+      RS3 parts: []
+      RS4 parts: []
+      RS5 parts: []
+      RS5 Sportback parts: []
+      RS6 parts: []
+      RS6 Avant parts: []
+      RS7 parts: []
+      RS7 Sportback parts: []
+      S e-tron GT parts: []
+      S3 parts: []
+      S4 parts: []
+      S5 parts: []
+      S5 Sportback parts: []
+      S6 parts: []
+      S6 Sportback e-tron parts: []
+      S7 parts: []
+      S7 Sportback parts: []
+      S8 parts: []
+      SQ5 parts: []
+      SQ5 Sportback parts: []
+      SQ6 e-tron parts: []
+      SQ6 e-tron Sportback parts: []
+      SQ7 parts: []
+      SQ8 parts: []
+      SQ8 e-tron parts: []
+      SQ8 e-tron Sportback parts: []
+      Super 90 parts: []
+      TT parts: []
+      TT Quattro parts: []
+      TT RS Quattro parts: []
+      TTS Quattro parts: []
+      V8 Quattro parts: []
+      allroad parts: []
+      e-tron GT parts: []
+      e-tron Quattro parts: []
+      e-tron S parts: []
+      e-tron S Sportback parts: []
+      e-tron Sportback parts: []
+  Porsche:
+    primary:
+    - AC and Climate Control
+    - Air Intake
+    - Brake
+    - Car Care and Detailing
+    - Clutch and Flywheel
+    - Cooling System
+    - Drivetrain and Axle
+    - Engine
+    - Exhaust
+    - Exterior Body
+    - Fuel System
+    - Interior Body
+    - Merchandise and Accessories
+    - Steering
+    - Supplies and Hardware
+    - Suspension
+    - Tools
+    - Transmission
+    - 356 parts
+    - 356A parts
+    - 356B parts
+    - 356C parts
+    - 356SC parts
+    - 718 Boxster parts
+    - 718 Cayman parts
+    - 718 Spyder parts
+    - 911 parts
+    - 912 parts
+    - 914 parts
+    - 918 Spyder parts
+    - 924 parts
+    - 928 parts
+    - 930 parts
+    - 944 parts
+    - 968 parts
+    - Boxster parts
+    - Carrera parts
+    - Carrera GT parts
+    - Cayenne parts
+    - Cayman parts
+    - Macan parts
+    - Panamera parts
+    - Taycan parts
+    subcategories:
+      AC and Climate Control: []
+      Air Intake: []
+      Brake: []
+      Car Care and Detailing: []
+      Clutch and Flywheel: []
+      Cooling System: []
+      Drivetrain and Axle: []
+      Engine: []
+      Exhaust: []
+      Exterior Body: []
+      Fuel System: []
+      Interior Body: []
+      Merchandise and Accessories: []
+      Steering: []
+      Supplies and Hardware: []
+      Suspension: []
+      Tools: []
+      Transmission: []
+      356 parts: []
+      356A parts: []
+      356B parts: []
+      356C parts: []
+      356SC parts: []
+      718 Boxster parts: []
+      718 Cayman parts: []
+      718 Spyder parts: []
+      911 parts: []
+      912 parts: []
+      914 parts: []
+      918 Spyder parts: []
+      924 parts: []
+      928 parts: []
+      930 parts: []
+      944 parts: []
+      968 parts: []
+      Boxster parts: []
+      Carrera parts: []
+      Carrera GT parts: []
+      Cayenne parts: []
+      Cayman parts: []
+      Macan parts: []
+      Panamera parts: []
+      Taycan parts: []

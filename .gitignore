@@ -209,6 +209,7 @@ __marimo__/
 # Project-specific: Generated datasets
 data/
 output/
+log/
 
 # Misc
 .DS_Store
