@@ -456,13 +456,18 @@ def deduplicate_csv() -> int:
 
 
 def scrape_category(brand_name: str, brand_slug: str, category: str,
-                    config: dict) -> int:
+                    config: dict, sort_order: Optional[str] = None) -> int:
     """
     Scrape all products from a category.
     Returns the number of products scraped.
+
+    Args:
+        sort_order: Optional sort parameter (e.g., 'desc_by_popularity')
     """
     category_slug = category_to_url_slug(category)
     base_url = f"{BASE_URL}/{brand_slug}/{category_slug}"
+    if sort_order:
+        base_url = f"{base_url}?order={sort_order}"
 
     logger.info(f"  Scraping {category}...")
 
@@ -483,7 +488,7 @@ def scrape_category(brand_name: str, brand_slug: str, category: str,
 
     for page in range(1, max_page + 1):
         if page > 1:
-            page_url = f"{base_url}?page={page}"
+            page_url = f"{base_url}&page={page}" if sort_order else f"{base_url}?page={page}"
             time.sleep(get_random_delay(config))
             html = fetch_page(page_url, config)
             if not html:
@@ -527,7 +532,8 @@ def scrape_brand(brand_name: str, config: dict) -> int:
     total = 0
 
     for category in enabled_categories:
-        count = scrape_category(brand_name, brand_slug, category, config)
+        count = scrape_category(brand_name, brand_slug, category, config,
+                                sort_order='desc_by_popularity')
         total += count
         time.sleep(get_random_delay(config))
 
@@ -541,7 +547,7 @@ def scrape_brand(brand_name: str, config: dict) -> int:
 def main():
     parser = argparse.ArgumentParser(description='FCP Euro Parts Scraper')
     parser.add_argument('--config', type=Path,
-                        default=Path(__file__).parent / 'fcp_config.yaml',
+                        default=Path(__file__).parent.parent / 'cfg' / 'fcp_config.yaml',
                         help='Path to configuration file')
     parser.add_argument('--brand', type=str,
                         help='Scrape only this brand')

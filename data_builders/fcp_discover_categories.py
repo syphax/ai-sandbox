@@ -194,7 +194,7 @@ def main():
     config = generate_config(all_categories)
 
     # Save config
-    output_path = Path(__file__).parent / 'fcp_config.yaml'
+    output_path = Path(__file__).parent.parent / 'cfg' / 'fcp_config.yaml'
     save_config(config, output_path)
 
     # Print summary

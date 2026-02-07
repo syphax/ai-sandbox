@@ -201,3 +201,19 @@ My response:
 Yes, this matches my expectations.
 
 
+# 2. Price comparison scraper
+
+We have successfully built a scraper to get pricing data from FCP Euro. Hooray!
+
+As a next step, I want to build a new Python script that can lookup specific parts from the output of that scraper (/data/fcp-euro-parts.csv). I want to look up specific parts, one at a time, from competitor sites.
+
+Deteiled specs:
+
+I will generate a list of parts from the FCP dataset that I want to benchmark. The columns of this dataset, which will be stored in a CSV file in the /data/ directory, are: 
+
+# Other tasks
+
+* Summarize M-B inventory
+* Do price matching
+* Build simulator
+
