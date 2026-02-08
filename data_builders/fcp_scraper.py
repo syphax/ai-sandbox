@@ -456,13 +456,15 @@ def deduplicate_csv() -> int:
 
 
 def scrape_category(brand_name: str, brand_slug: str, category: str,
-                    config: dict, sort_order: Optional[str] = None) -> int:
+                    config: dict, sort_order: Optional[str] = None,
+                    overall_count: Optional[List[int]] = None) -> int:
     """
     Scrape all products from a category.
     Returns the number of products scraped.
 
     Args:
         sort_order: Optional sort parameter (e.g., 'desc_by_popularity')
+        overall_count: Single-element list tracking cumulative total across all categories
     """
     category_slug = category_to_url_slug(category)
     base_url = f"{BASE_URL}/{brand_slug}/{category_slug}"
@@ -507,12 +509,18 @@ def scrape_category(brand_name: str, brand_slug: str, category: str,
         if products:
             write_products_to_csv(products, category, brand_name, page_url)
             total_products += len(products)
-            logger.info(f"    Page {page}: {len(products)} products")
+            if overall_count is not None:
+                overall_count[0] += len(products)
+            overall_total = overall_count[0] if overall_count is not None else total_products
+            logger.info(f"    Page {page}: {len(products)} products; "
+                        f"{total_products} total for {category}; "
+                        f"{overall_total} total")
 
     return total_products
 
 
-def scrape_brand(brand_name: str, config: dict) -> int:
+def scrape_brand(brand_name: str, config: dict,
+                 overall_count: Optional[List[int]] = None) -> int:
     """
     Scrape all enabled categories for a brand.
     Returns the total number of products scraped.
@@ -533,7 +541,8 @@ def scrape_brand(brand_name: str, config: dict) -> int:
 
     for category in enabled_categories:
         count = scrape_category(brand_name, brand_slug, category, config,
-                                sort_order='desc_by_popularity')
+                                sort_order='desc_by_popularity',
+                                overall_count=overall_count)
         total += count
         time.sleep(get_random_delay(config))
 
@@ -620,17 +629,17 @@ def main():
         config['product_lines'] = {args.category: True}
 
     # Scrape
-    grand_total = 0
+    overall_count = [0]
     try:
         for brand in brands:
-            total = scrape_brand(brand, config)
-            grand_total += total
+            scrape_brand(brand, config, overall_count=overall_count)
     except BotBlockedException as e:
         logger.error(f"Scraping aborted: {e}")
-        logger.info(f"Partial results saved. Total products before abort: {grand_total}")
+        logger.info(f"Partial results saved. Total products before abort: {overall_count[0]}")
         logger.info(f"Output file: {OUTPUT_FILE}")
         return 2  # Exit code 2 indicates bot blocking
 
+    grand_total = overall_count[0]
     logger.info(f"\nScraping complete! Total products: {grand_total}")
     logger.info(f"Output file: {OUTPUT_FILE}")
 

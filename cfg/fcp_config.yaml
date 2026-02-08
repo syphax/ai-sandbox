@@ -1,6 +1,9 @@
 brands:
-- BMW
-# Mercedes
+#- BMW
+#- Mercedes
+#- Audi
+#- Porsche
+- Volvo
 brand_slugs:
   Mercedes: Mercedes~Benz-parts
   BMW: BMW-parts
