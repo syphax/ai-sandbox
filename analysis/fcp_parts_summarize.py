@@ -183,7 +183,7 @@ path_output = Path('..') / 'img'
 path_output.mkdir(exist_ok=True)
 
 
-def add_category_labels(ax, df_pivot, min_frac=0.06):
+def add_category_labels(ax, df_pivot, min_frac=0.06, rotation=0):
     """Label stacked bar segments with their category name when large enough."""
     max_h = df_pivot.sum(axis=1).max()
     for container, col in zip(ax.containers, df_pivot.columns):
@@ -192,13 +192,64 @@ def add_category_labels(ax, df_pivot, min_frac=0.06):
             if h / max_h > min_frac:
                 ax.text(bar.get_x() + bar.get_width() / 2,
                         bar.get_y() + h / 2, col,
-                        ha='center', va='center',
+                        ha='center', va='center', rotation=rotation,
                         fontsize=FS_BAR, color='white', fontweight='bold')
 
 
+def add_abbreviated_labels(ax, df_pivot, abbrev_map,
+                           min_frac_full=0.08, min_frac_short=0.04):
+    """Full text on large segments, abbreviated on medium, nothing on small."""
+    max_h = df_pivot.sum(axis=1).max()
+    for container, col in zip(ax.containers, df_pivot.columns):
+        for bar in container:
+            h = bar.get_height()
+            frac = h / max_h
+            if frac > min_frac_full:
+                label = col
+            elif frac > min_frac_short and col in abbrev_map:
+                label = abbrev_map[col]
+            else:
+                continue
+            ax.text(bar.get_x() + bar.get_width() / 2,
+                    bar.get_y() + h / 2, label,
+                    ha='center', va='center', rotation=90,
+                    fontsize=FS_BAR - 1, color='white', fontweight='bold')
+
+
+def add_leader_lines(ax, fig):
+    """Draw lines from legend swatches to corresponding segments on the rightmost bar."""
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    legend = ax.get_legend()
+    leg_handles = list(reversed(legend.legendHandles))
+
+    for i, container in enumerate(ax.containers):
+        if i >= len(leg_handles):
+            break
+        bar = container[-1]  # rightmost bar
+        h = bar.get_height()
+        if h <= 0:
+            continue
+        bar_x = bar.get_x() + bar.get_width()
+        bar_y = bar.get_y() + h / 2
+        hbox = leg_handles[i].get_window_extent(renderer)
+        leg_pt = ax.transData.inverted().transform(
+            (hbox.x0, (hbox.y0 + hbox.y1) / 2)
+        )
+        ax.annotate('',
+            xy=(bar_x, bar_y), xycoords='data',
+            xytext=(leg_pt[0], leg_pt[1]), textcoords='data',
+            arrowprops=dict(arrowstyle='-', color='grey', lw=0.5, alpha=0.4),
+            annotation_clip=False)
+
+
 def stacked_bar(df_pivot, title, ylabel, colors,
-                pct=False, bar_labels=True, legend_ncol=1, save_name=None):
-    """Stacked bar chart sized for side-by-side placement on a Google Slide."""
+                pct=False, label_style=None, abbrev_map=None,
+                legend_ncol=1, save_name=None):
+    """Stacked bar chart sized for side-by-side placement on a Google Slide.
+
+    label_style: None, 'horizontal', 'rotate', 'abbreviate', 'leader'
+    """
     fig, ax = plt.subplots(figsize=(CHART_W, CHART_H))
 
     df_plot = df_pivot.div(df_pivot.sum(axis=1), axis=0) if pct else df_pivot
@@ -217,8 +268,12 @@ def stacked_bar(df_pivot, title, ylabel, colors,
     else:
         ax.yaxis.set_major_formatter(FuncFormatter(fmt_thousands))
 
-    if bar_labels:
+    if label_style == 'horizontal':
         add_category_labels(ax, df_plot)
+    elif label_style == 'rotate':
+        add_category_labels(ax, df_plot, min_frac=0.04, rotation=90)
+    elif label_style == 'abbreviate':
+        add_abbreviated_labels(ax, df_plot, abbrev_map or {})
 
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles[::-1], labels[::-1],
@@ -226,6 +281,9 @@ def stacked_bar(df_pivot, title, ylabel, colors,
               loc='upper left', frameon=False, ncol=legend_ncol)
     sns.despine(ax=ax)
     plt.tight_layout()
+
+    if label_style == 'leader':
+        add_leader_lines(ax, fig)
 
     if FLAG_SAVE_CHARTS and save_name:
         fig.savefig(path_output / save_name, dpi=150, bbox_inches='tight')
@@ -254,15 +312,17 @@ df_type_pivot = df_type_pivot[type_cols]
 # Sort OEMs by total part count descending
 df_type_pivot = df_type_pivot.loc[df_type_pivot.sum(axis=1).sort_values(ascending=False).index]
 
-# Light blue palette (<=5 groups)
-blues = sns.color_palette('Blues', n_colors=len(type_cols) + 2)[2:]
+# High-contrast qualitative palette (<=5 groups)
+# Alternatives: 'Set1' (bold primary), 'Set2' (muted pastel),
+#               'colorblind' (seaborn CB-safe), 'tab10' (Tableau default)
+blues = sns.color_palette('colorblind', n_colors=len(type_cols))
 
 stacked_bar(df_type_pivot, 'Part Count by OEM & Type', 'Unique Parts',
-            colors=blues, bar_labels=False,
+            colors=blues,
             save_name='chart_oem_type_count.png')
 
 stacked_bar(df_type_pivot, 'Part Mix by OEM & Type', '% of Parts',
-            colors=blues, pct=True, bar_labels=False,
+            colors=blues, pct=True,
             save_name='chart_oem_type_pct.png')
 
 # %%
@@ -290,15 +350,28 @@ df_status_pivot = df_status_pivot[status_cols]
 # Sort OEMs by total part count descending
 df_status_pivot = df_status_pivot.loc[df_status_pivot.sum(axis=1).sort_values(ascending=False).index]
 
-# Tableau palette (>5 categories)
-colors_status = sns.color_palette('tab20', n_colors=len(status_cols))
+# Diverging palette: blue/green (in stock) → yellow → red (unavailable)
+colors_status = sns.color_palette('Spectral_r', n_colors=len(status_cols))
+
+# Label style: 'rotate', 'abbreviate', 'leader', or None
+LABEL_STYLE_STATUS = 'rotate'
+
+status_abbrev = {
+    'In Stock': 'Stk', '< 1 day': '<1d', '1 day': '1d',
+    '2 days': '2d', '3 days': '3d', '4 days': '4d',
+    '5 days': '5d', '7 days': '7d', '2-3 weeks': '2-3w',
+    '4-6 weeks': '4-6w', 'No ETA': 'N/A', 'Discontinued': 'Disc',
+    'Superseded': 'Spsd', 'Not For Sale': 'NFS',
+}
 
 stacked_bar(df_status_pivot, 'Part Count by OEM & Status', 'Unique Parts',
-            colors=colors_status, bar_labels=False,
+            colors=colors_status, label_style=LABEL_STYLE_STATUS,
+            abbrev_map=status_abbrev,
             save_name='chart_oem_status_count.png')
 
 stacked_bar(df_status_pivot, 'Part Mix by OEM & Status', '% of Parts',
-            colors=colors_status, pct=True, bar_labels=False,
+            colors=colors_status, pct=True, label_style=LABEL_STYLE_STATUS,
+            abbrev_map=status_abbrev,
             save_name='chart_oem_status_pct.png')
 
 

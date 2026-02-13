@@ -210,6 +210,9 @@ __marimo__/
 data/
 output/
 log/
+img/
+
+*.png
 
 # Misc
 .DS_Store
