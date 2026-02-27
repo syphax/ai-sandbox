@@ -80,3 +80,51 @@ The following features are out of scope for the initial implementation but shoul
 ## 7. Implementation
 
 Implement the code for this demand simulator in this repository (~/Code/git/ai-sandbox/scimulator/)
+
+## 8. ADDENDUM #1
+
+The first version of the simulator reads in product info in YAML format. I should have been more explicit. Both the product info and the geographic weights will be read in from CSV files.
+
+While I like the ability to specify demand parameters at a product level, I want these parameters to be OPTIONAL columns in the input CSV. If these columns are not present, the simulator should use default values.
+
+So the input CSV has the following required columns:
+
+* `part_number`
+* `annual_units`
+* `annual_orders`
+
+All of the other parameters shown in the example_complex.yaml file are great, but out of scope for the initial implementation. Let's keep it simple to start!!
+
+The input for the geographic weights will be a CSV file with the following columns:
+
+* `zip3`
+* `weight`
+
+Where `weight` can be any positive number. The weights will be normalized to sum to 1.0.
+
+The input files will be located in the `~/Code/git/ai-sandbox/scimulator/data/` directory.
+
+Similarly, the correlations data, which is optional, should also be read from a CSV file in the same directory, with the following columns:
+
+* source_product: "FLAGSHIP_001"
+* target_product: "CONSUMABLE_001"
+* coefficient: 0.5
+* lag: 48  # 2-day lag for accessory purchases
+* type: "linear"
+* enabled: true
+
+## 9. Oh Boy
+
+Ok, so I just ran this. 
+
+`python3 -m synthetic_demand_engine.cli config/testing.yaml -o output/demand_test.csv --products-csv data/products.csv --geo-weights-csv data/geo_weights.csv --verbose`
+
+What I see is that the demand for each product gets uniformly distributed across all hours of the year (1 order per hour per zip3), in proportion to each zip3's share of the demand. This is not at all what the specification describes.
+
+What I expected to see:
+* Orders occur at random times, between 07:00 and 22:00, as indicated in the spec.
+* Demand must be integer quantites.
+* Temporal and spatial distribution must be random. The current generated output is not random at all.
+
+Can you please review the code, re-read the spec in openclaw/prompts/demand_simulator.md, and tell me what went wrong? What was not clear?
+

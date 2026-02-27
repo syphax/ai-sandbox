@@ -102,6 +102,13 @@ class CorrelationConfig:
 
 
 @dataclass
+class GeographicWeight:
+    """Geographic weight for demand distribution across ZIP3 regions."""
+    zip3: str
+    weight: float
+
+
+@dataclass
 class ProductConfig:
     """Configuration for a single product's demand pattern."""
     product_id: str
@@ -112,6 +119,8 @@ class ProductConfig:
     anomalies: List[AnomalyConfig] = field(default_factory=list)
     min_demand: float = 0.0
     max_demand: Optional[float] = None
+    annual_units: Optional[float] = None
+    annual_orders: Optional[int] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -123,6 +132,7 @@ class GenerationConfig:
     frequency: str = "H"  # Pandas frequency string
     products: List[ProductConfig] = field(default_factory=list)
     correlations: List[CorrelationConfig] = field(default_factory=list)
+    geographic_weights: List[GeographicWeight] = field(default_factory=list)
     seed: Optional[int] = None
     output_format: str = "csv"  # csv, parquet, json
     metadata: Dict[str, Any] = field(default_factory=dict)
