@@ -135,8 +135,8 @@ def main():
             writer.writerow([pn, units, ords])
 
     print(f"Created {count} products in {output_path}")
-    print(f"Total units: {demand.sum()} (target: {total_units})")
-    print(f"Total orders: {orders.sum()}")
+    print(f"Total units: {demand.sum():,} (target: {total_units:,})")
+    print(f"Total orders: {orders.sum():,}")
 
     # Concentration metrics
     total = demand.sum()

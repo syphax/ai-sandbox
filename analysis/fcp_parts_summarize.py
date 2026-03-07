@@ -376,3 +376,51 @@ stacked_bar(df_status_pivot, 'Part Mix by OEM & Status', '% of Parts',
 
 
 # %%
+# ─── Charts 5 & 6: Part Count by OEM × Grouped Availability ───
+
+avail_group_order = ['In Stock', '< 1 week', '1-6 weeks', 'Obsolete or unknown']
+
+def shipping_days_to_group(days):
+    if days == 0:
+        return 'In Stock'
+    elif days is not None and 0 < days <= 5:
+        return '< 1 week'
+    elif days is not None and 7 <= days <= 35:
+        return '1-6 weeks'
+    else:
+        return 'Obsolete or unknown'
+
+df_shipping_times['Avail Group'] = df_shipping_times['Shipping Days'].apply(shipping_days_to_group)
+
+df_fcp_grouped = df_fcp.merge(df_shipping_times[['in_stock', 'Avail Group']], on='in_stock', how='left')
+df_fcp_grouped['Avail Group'] = df_fcp_grouped['Avail Group'].fillna('Obsolete or unknown')
+
+df_grouped_pivot = (
+    df_fcp_grouped.groupby(['source_brand', 'Avail Group'], as_index=False)
+    .agg(cnt=('sku', 'nunique'))
+    .pivot(index='source_brand', columns='Avail Group', values='cnt')
+    .fillna(0)
+)
+
+group_cols = [c for c in avail_group_order if c in df_grouped_pivot.columns]
+group_cols += [c for c in df_grouped_pivot.columns if c not in group_cols]
+df_grouped_pivot = df_grouped_pivot[group_cols]
+
+# Sort OEMs by total part count descending
+df_grouped_pivot = df_grouped_pivot.loc[df_grouped_pivot.sum(axis=1).sort_values(ascending=False).index]
+
+# Green → blue → amber → red
+colors_grouped = ['#2ca02c', '#1f77b4', '#ff7f0e', '#d62728']
+
+LABEL_STYLE_STATUS = None
+
+stacked_bar(df_grouped_pivot, 'Part Count by OEM & Availability Group', 'Unique Parts',
+            colors=colors_grouped, label_style=LABEL_STYLE_STATUS,
+            save_name='chart_oem_avail_group_count.png')
+
+stacked_bar(df_grouped_pivot, 'Part Mix by OEM & Availability Group', '% of Parts',
+            colors=colors_grouped, pct=True, label_style=LABEL_STYLE_STATUS,
+            save_name='chart_oem_avail_group_pct.png')
+
+
+# %%

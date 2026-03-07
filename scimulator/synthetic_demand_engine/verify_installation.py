@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """
 Verification script to check if the Synthetic Demand Engine is properly installed.
+Run from the synthetic_demand_engine/ directory.
 """
 
 import sys
 from pathlib import Path
+
+# Ensure the parent directory (scimulator/) is on the path so the package is importable
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def verify_modules():
     """Verify all modules can be imported."""
@@ -36,24 +40,25 @@ def verify_modules():
 
     print("="*70)
 
-    # Check files exist
+    # Check files exist (paths relative to this script's directory)
     print("\nVerifying file structure...")
     print("="*70)
 
+    base = Path(__file__).parent
     required_files = [
-        "synthetic_demand_engine/__init__.py",
-        "synthetic_demand_engine/models.py",
-        "synthetic_demand_engine/orchestrator.py",
-        "synthetic_demand_engine/cli.py",
-        "synthetic_demand_engine/config/__init__.py",
-        "synthetic_demand_engine/config/loader.py",
-        "synthetic_demand_engine/generators/__init__.py",
-        "synthetic_demand_engine/generators/patterns.py",
-        "synthetic_demand_engine/generators/noise.py",
-        "synthetic_demand_engine/generators/correlations.py",
-        "synthetic_demand_engine/utils/__init__.py",
-        "synthetic_demand_engine/utils/validation.py",
-        "synthetic_demand_engine/utils/visualization.py",
+        "__init__.py",
+        "models.py",
+        "orchestrator.py",
+        "cli.py",
+        "config/__init__.py",
+        "config/loader.py",
+        "generators/__init__.py",
+        "generators/patterns.py",
+        "generators/noise.py",
+        "generators/correlations.py",
+        "utils/__init__.py",
+        "utils/validation.py",
+        "utils/visualization.py",
         "config/example_basic.yaml",
         "config/example_multi.yaml",
         "config/example_complex.yaml",
@@ -65,7 +70,7 @@ def verify_modules():
     ]
 
     for file_path in required_files:
-        if Path(file_path).exists():
+        if (base / file_path).exists():
             print(f"✓ {file_path}")
         else:
             print(f"✗ {file_path} - MISSING")

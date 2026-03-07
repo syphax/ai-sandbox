@@ -8,7 +8,7 @@ import os
 import pathlib
 from textwrap import dedent
 
-BASE_DIR = pathlib.Path(__file__).parent / "synthetic_demand_engine"
+BASE_DIR = pathlib.Path(__file__).parent
 
 def create_file(path, content):
     """Create a file with given content."""
@@ -1075,7 +1075,7 @@ pyyaml>=6.0
 pytest>=7.4.0
 """.strip()
 
-    create_file("../requirements.txt", requirements)
+    create_file("requirements.txt", requirements)
 
     setup_py = """
 from setuptools import setup, find_packages
@@ -1100,7 +1100,7 @@ setup(
 )
 """.strip()
 
-    create_file("../setup.py", setup_py)
+    create_file("setup.py", setup_py)
 
     print("\\nBuild complete!")
     print(f"Created {BASE_DIR} with all modules")
