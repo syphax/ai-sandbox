@@ -292,6 +292,20 @@ def stacked_bar(df_pivot, title, ylabel, colors,
     plt.close(fig)
 
 
+def show_pivot_table(df_pivot, pct=False):
+    """Display df_pivot transposed (categories as rows, brands as columns) with a Total column."""
+    tbl = df_pivot.T  # categories → rows, brands → columns
+    if pct:
+        tbl_display = tbl.div(tbl.sum(axis=0))          # each col sums to 100 %
+        tbl_display['Total'] = tbl.sum(axis=1) / tbl.sum().sum()
+        fmt = lambda x: f'{x:.1%}'
+    else:
+        tbl_display = tbl.copy().astype(int)
+        tbl_display['Total'] = tbl_display.sum(axis=1)
+        fmt = lambda x: f'{x:,}'
+    display(tbl_display.apply(lambda col: col.map(fmt)))
+
+
 # %%
 # ─── Charts 1 & 2: Part Count by OEM × Part Type ───
 
@@ -320,10 +334,12 @@ blues = sns.color_palette('colorblind', n_colors=len(type_cols))
 stacked_bar(df_type_pivot, 'Part Count by OEM & Type', 'Unique Parts',
             colors=blues,
             save_name='chart_oem_type_count.png')
+show_pivot_table(df_type_pivot)
 
 stacked_bar(df_type_pivot, 'Part Mix by OEM & Type', '% of Parts',
             colors=blues, pct=True,
             save_name='chart_oem_type_pct.png')
+show_pivot_table(df_type_pivot, pct=True)
 
 # %%
 # ─── Charts 3 & 4: Part Count by OEM × Availability Status ───
@@ -368,11 +384,13 @@ stacked_bar(df_status_pivot, 'Part Count by OEM & Status', 'Unique Parts',
             colors=colors_status, label_style=LABEL_STYLE_STATUS,
             abbrev_map=status_abbrev,
             save_name='chart_oem_status_count.png')
+show_pivot_table(df_status_pivot)
 
 stacked_bar(df_status_pivot, 'Part Mix by OEM & Status', '% of Parts',
             colors=colors_status, pct=True, label_style=LABEL_STYLE_STATUS,
             abbrev_map=status_abbrev,
             save_name='chart_oem_status_pct.png')
+show_pivot_table(df_status_pivot, pct=True)
 
 
 # %%
@@ -417,10 +435,12 @@ LABEL_STYLE_STATUS = None
 stacked_bar(df_grouped_pivot, 'Part Count by OEM & Availability Group', 'Unique Parts',
             colors=colors_grouped, label_style=LABEL_STYLE_STATUS,
             save_name='chart_oem_avail_group_count.png')
+show_pivot_table(df_grouped_pivot)
 
 stacked_bar(df_grouped_pivot, 'Part Mix by OEM & Availability Group', '% of Parts',
             colors=colors_grouped, pct=True, label_style=LABEL_STYLE_STATUS,
             save_name='chart_oem_avail_group_pct.png')
+show_pivot_table(df_grouped_pivot, pct=True)
 
 
 # %%
