@@ -341,6 +341,8 @@ stacked_bar(df_type_pivot, 'Part Mix by OEM & Type', '% of Parts',
             save_name='chart_oem_type_pct.png')
 show_pivot_table(df_type_pivot, pct=True)
 
+
+
 # %%
 # ─── Charts 3 & 4: Part Count by OEM × Availability Status ───
 
@@ -442,5 +444,18 @@ stacked_bar(df_grouped_pivot, 'Part Mix by OEM & Availability Group', '% of Part
             save_name='chart_oem_avail_group_pct.png')
 show_pivot_table(df_grouped_pivot, pct=True)
 
+
+# %%
+# Segment by part type and availability group
+
+df_grouped_pivot_cat_avail = (
+    df_fcp_grouped.groupby(['part_type_clean', 'Avail Group'], as_index=False)
+    .agg(cnt=('sku', 'nunique'))
+    .pivot(index='part_type_clean', columns='Avail Group', values='cnt')
+    .fillna(0)
+)
+# %%
+
+show_pivot_table(df_grouped_pivot_cat_avail, pct=False)
 
 # %%
