@@ -37,3 +37,8 @@ Let's kill it. Does the query first filter for excluded building types, or does 
 In data_builders/warehouse_finder.py, we currently hard-ocde a lat, lon, and radius. I'd like to add a config file (YAML) where we can add more then one set of lat/lon/radii. And, we should have a parameter called name for each set. The script should read this YAML file and loop through each set of parameters, which are structured as a dict.
 
 The config file should be called warehouse_finger.yaml, and be in a cfg directory which is on the same level as the data_builders directory.
+
+# Phase II
+
+(What are the limits of obtaining info from e.g. Google Maps and importing into OpenStreeMaps?)
+What are government sources of warehouse owners & lessees?
