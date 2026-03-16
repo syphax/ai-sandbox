@@ -117,7 +117,7 @@ Similarly, the correlations data, which is optional, should also be read from a 
 
 Ok, so I just ran this. 
 
-`python3 -m synthetic_demand_engine.cli config/testing.yaml -o output/demand_test.csv --products-csv data/products.csv --geo-weights-csv data/geo_weights.csv --verbose`
+`python3 -m synthetic_demand_engine.cli config/testing.yaml -o output/demand_test.csv --products-csv data/product_demand.csv --geo-weights-csv data/geo_weights.csv --verbose`
 
 What I see is that the demand for each product gets uniformly distributed across all hours of the year (1 order per hour per zip3), in proportion to each zip3's share of the demand. This is not at all what the specification describes.
 

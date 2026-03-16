@@ -1,0 +1,16 @@
+name: "testing"
+ship_mode: "Next Day"
+facing_fill_param: 0.90
+delivery_speed:
+  units: "mph"
+  mean: 450
+  stdev: 100 
+origins:
+  "Cranbury": 
+    state: "NJ"
+    lat: 40.0
+    lng: -90
+  "Atlanta":
+    state: "GA"
+    lat: 35.0
+    lng: -100.0

@@ -9,7 +9,7 @@ seed: 42
 output_format: "csv"
 
 # CSV input file paths (can also be passed via CLI --products-csv, etc.)
-products_csv: "~/Code/git/ai-sandbox/scimulator/data/products.csv"
+products_csv: "~/Code/git/ai-sandbox/scimulator/data/product_demand.csv"
 geo_weights_csv: "~/Code/git/ai-sandbox/scimulator/data/geo_weights.csv"
 correlations_csv: "~/Code/git/ai-sandbox/scimulator/data/correlations.csv"
 
