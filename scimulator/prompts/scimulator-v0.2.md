@@ -239,8 +239,14 @@ A scenario fully defines a simulation run. This model is established from day on
 ### 8.1 Scenario Definition
 
 * **Scenario ID and name**
-* **Input dataset version**: Reference to an immutable, named dataset (demand, supply schedules, initial inventory, etc.)
-* **Network configuration**: Which nodes and edges to include
+* **Input dataset version**: Reference to an immutable, named dataset (demand, inbound schedules, initial inventory)
+* **Entity sets**: Named subsets of network entities that participate in the scenario. One optional set per entity type:
+    * `product_set_id` — which products to include
+    * `supply_node_set_id` — which supply nodes to include
+    * `distribution_node_set_id` — which distribution nodes to include
+    * `demand_node_set_id` — which demand nodes (customers) to include
+    * `edge_set_id` — which edges to include (further restricted by active node sets)
+    * NULL for any set means "use all entities of that type"
 * **Parameter overrides**: Backorder probability, node capacities, penalty costs, etc.
 * **Policy rules**: Fulfillment logic, routing rules, ordering policies (Phase 3+)
 * **Time settings**:
@@ -253,9 +259,25 @@ A scenario fully defines a simulation run. This model is established from day on
     * `write_snapshots`: Boolean (can be disabled if storage is a concern)
     * `snapshot_interval_days`: Integer, default 1. Controls how often inventory snapshots are written (1 = daily, 7 = weekly, etc.). Any point-in-time state can be reconstructed from the nearest prior snapshot plus event log replay.
 
-### 8.2 Data Versioning
+### 8.2 Entity Sets
 
-Input datasets are stored as **immutable, named versions** in DuckDB. Each version gets a unique ID, and scenarios reference dataset versions. New versions are created via copy-and-modify (e.g., AI agent: "increase demand by 10% for New England, March–May" creates a new dataset version). Original data is always preserved.
+Network entities (suppliers, supply nodes, distribution nodes, demand nodes, edges, products) are stored globally in the database — not scoped to a dataset version. **Entity sets** are named, static subsets that control which entities participate in a given scenario. Sets are defined via explicit membership (a header table + member table per entity type). Dynamic set definitions (e.g., "all supply nodes tagged 'Asia'") are a future feature.
+
+When the engine resolves a scenario's active network:
+* Edges referencing nodes outside the active node sets are pruned (with a warning logged).
+* Nodes with no remaining edges are flagged as stranded (with a warning logged).
+* Simulation input rows (demand, initial_inventory, inbound_schedule) are filtered against the active sets — rows referencing entities outside the sets are silently dropped.
+
+This design means different scenarios can select different slices of the same entity data without duplication. For example, two variants of a distribution node (e.g., an FC at different capacity levels) are modeled as two separate entities, and sets choose which one to include.
+
+### 8.3 Data Versioning
+
+Simulation input data (demand, inbound schedules, initial inventory) is stored as **immutable, named versions** in DuckDB. Each version gets a unique ID, and scenarios reference dataset versions. New versions are created via copy-and-modify (e.g., AI agent: "increase demand by 10% for New England, March–May" creates a new dataset version). Original data is always preserved.
+
+| Mechanism | Applies to | Purpose |
+|-----------|-----------|---------|
+| **Entity sets** | suppliers, supply_nodes, distribution_nodes, demand_nodes, edges, products | Which entities participate in the scenario |
+| **Dataset versions** | demand, initial_inventory, inbound_schedule | Which variant of the simulation input data to use |
 
 ## 9. Simulation Outputs
 

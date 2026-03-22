@@ -36,13 +36,15 @@ python -m scimulator.simulator.cli inspect scimulator/simulator/tests/sample_sce
 
 ## How It Works
 
-Everything is driven by a single **scenario YAML file**. The CLI loads it, populates a DuckDB database, runs the simulation, and writes results back to DuckDB.
+A **scenario** defines a simulation run by combining network topology (via entity sets) with simulation input data (via dataset versions). The CLI loads a scenario YAML, populates a DuckDB database, runs the simulation, and writes results back to DuckDB.
 
 ```
 scenario.yaml ──> loader ──> DuckDB ──> engine ──> DuckDB (event_log, snapshots)
                                ↑
                           demand CSV
 ```
+
+**Entity sets** select which suppliers, nodes, edges, and products participate in a scenario. **Dataset versions** select which variant of the demand, inventory, and inbound data to use. The engine filters simulation inputs against the active sets automatically.
 
 ## Scenario YAML Reference
 
@@ -63,6 +65,13 @@ write_snapshots: true               # Write periodic inventory snapshots
 snapshot_interval_days: 7           # Snapshot every N days (1 = daily)
 dataset_version_id: "v1"           # Identifier for this input dataset
 demand_csv: "path/to/demand.csv"   # Path to demand data (from synthetic demand engine or manual)
+
+# Entity set references (optional — NULL means "use all")
+product_set_id: "my_products"              # Which products to include
+supply_node_set_id: "domestic_suppliers"    # Which supply nodes to include
+distribution_node_set_id: "east_coast"     # Which distribution nodes to include
+demand_node_set_id: "northeast_customers"  # Which demand nodes to include
+edge_set_id: null                          # Which edges (auto-filtered by active node sets)
 ```
 
 ### Network topology
@@ -216,7 +225,7 @@ See `scimulator/data/products_demand.csv` for the product demand config format a
 
 ### Everything else
 
-All other data (suppliers, DCs, edges, products, inventory, inbound schedule) is defined inline in the scenario YAML. There's no separate import step — the YAML is the single source of truth for a scenario.
+Network entities (suppliers, DCs, edges, products) can be loaded into the database and selected via **entity sets**, or defined inline in the scenario YAML for convenience (useful for testing and small scenarios). Initial inventory and inbound schedules are scoped to a dataset version and can also be inlined in the YAML.
 
 ### Querying the database directly
 
@@ -240,9 +249,10 @@ Key output tables:
 - **run_metadata** — run timing, status, config snapshot
 
 Key input tables (also in the DB after loading):
-- **demand** — all demand events
+- **demand** — all demand events (scoped to dataset version)
 - **product** — product master
 - **distribution_node**, **supply_node**, **edge** — network topology
+- **\*_set**, **\*_set_member** — entity sets defining which entities participate in a scenario
 
 ## Project Structure
 

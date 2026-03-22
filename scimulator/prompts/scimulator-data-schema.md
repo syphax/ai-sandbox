@@ -41,6 +41,20 @@ This document defines the DuckDB relational schema for the Distribution SCimulat
 | distance_matrix | Pre-computed or imported distances between locations |
 | zone_table | Carrier zone/speed tables (ZIP3-based) |
 
+### Entity Set Tables
+| Table | Description |
+|-------|-------------|
+| product_set | Named sets of products |
+| product_set_member | Product membership in sets |
+| supply_node_set | Named sets of supply nodes |
+| supply_node_set_member | Supply node membership in sets |
+| distribution_node_set | Named sets of distribution nodes |
+| distribution_node_set_member | Distribution node membership in sets |
+| demand_node_set | Named sets of demand nodes (customers) |
+| demand_node_set_member | Demand node membership in sets |
+| edge_set | Named sets of transportation edges |
+| edge_set_member | Edge membership in sets |
+
 ### Simulation Input Tables (per dataset version)
 | Table | Description |
 |-------|-------------|
@@ -130,6 +144,11 @@ Top-level definition of a simulation run.
 | write_event_log | BOOLEAN | NN, default TRUE | Whether to write event log |
 | write_snapshots | BOOLEAN | NN, default TRUE | Whether to write inventory snapshots |
 | snapshot_interval_days | INTEGER | NN, default 1 | Days between inventory snapshots (1 = daily, 7 = weekly, etc.). Any point-in-time state can be reconstructed from nearest prior snapshot + event log replay. |
+| product_set_id | TEXT | FK → product_set, nullable | Product set for this scenario. NULL = all products |
+| supply_node_set_id | TEXT | FK → supply_node_set, nullable | Supply node set for this scenario. NULL = all supply nodes |
+| distribution_node_set_id | TEXT | FK → distribution_node_set, nullable | Distribution node set for this scenario. NULL = all distribution nodes |
+| demand_node_set_id | TEXT | FK → demand_node_set, nullable | Demand node set for this scenario. NULL = all demand nodes |
+| edge_set_id | TEXT | FK → edge_set, nullable | Edge set for this scenario. NULL = all edges (auto-filtered by active node sets) |
 | created_at | TIMESTAMP | NN | Creation timestamp |
 | notes | TEXT | | User notes |
 
@@ -311,6 +330,104 @@ Extensible key-value attributes for intrinsic product properties. Relationship-d
 | value_type | TEXT | NN, default 'text' | 'text', 'integer', or 'decimal' |
 | attribute_value | TEXT | NN | Human-readable value (always populated, even for numeric types) |
 | value_numeric | DECIMAL(14,4) | nullable | Populated when value_type is 'integer' or 'decimal'. Enables numeric filtering/aggregation without casting. |
+
+---
+
+## Entity Set Tables
+
+Entity sets define named subsets of network entities for use by scenarios. Each entity type has a header table (set definition with metadata) and a member table (which entities belong to the set). Sets are static — members are explicitly listed. A scenario references one set per entity type; NULL means "use all entities of that type."
+
+When the engine resolves a scenario's active entities:
+* Edges referencing nodes not in the active node sets are pruned (with a warning logged).
+* Nodes with no edges in or out after pruning are flagged as stranded (with a warning logged).
+* Simulation input rows (demand, initial_inventory, inbound_schedule) are filtered against the active sets — rows referencing entities outside the sets are silently dropped.
+
+### product_set
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| product_set_id | TEXT | PK | Unique set identifier |
+| name | TEXT | NN | Human-readable name |
+| description | TEXT | | How/why this set was created |
+| created_at | TIMESTAMP | NN | Creation timestamp |
+| created_by | TEXT | | 'user', 'ai_agent', etc. |
+
+### product_set_member
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| product_set_id | TEXT | PK, FK → product_set | |
+| product_id | TEXT | PK, FK → product | |
+
+### supply_node_set
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| supply_node_set_id | TEXT | PK | Unique set identifier |
+| name | TEXT | NN | Human-readable name |
+| description | TEXT | | How/why this set was created |
+| created_at | TIMESTAMP | NN | Creation timestamp |
+| created_by | TEXT | | 'user', 'ai_agent', etc. |
+
+### supply_node_set_member
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| supply_node_set_id | TEXT | PK, FK → supply_node_set | |
+| supply_node_id | TEXT | PK, FK → supply_node | |
+
+### distribution_node_set
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| distribution_node_set_id | TEXT | PK | Unique set identifier |
+| name | TEXT | NN | Human-readable name |
+| description | TEXT | | How/why this set was created |
+| created_at | TIMESTAMP | NN | Creation timestamp |
+| created_by | TEXT | | 'user', 'ai_agent', etc. |
+
+### distribution_node_set_member
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| distribution_node_set_id | TEXT | PK, FK → distribution_node_set | |
+| dist_node_id | TEXT | PK, FK → distribution_node | |
+
+### demand_node_set
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| demand_node_set_id | TEXT | PK | Unique set identifier |
+| name | TEXT | NN | Human-readable name |
+| description | TEXT | | How/why this set was created |
+| created_at | TIMESTAMP | NN | Creation timestamp |
+| created_by | TEXT | | 'user', 'ai_agent', etc. |
+
+### demand_node_set_member
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| demand_node_set_id | TEXT | PK, FK → demand_node_set | |
+| demand_node_id | TEXT | PK, FK → demand_node | |
+
+### edge_set
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| edge_set_id | TEXT | PK | Unique set identifier |
+| name | TEXT | NN | Human-readable name |
+| description | TEXT | | How/why this set was created |
+| created_at | TIMESTAMP | NN | Creation timestamp |
+| created_by | TEXT | | 'user', 'ai_agent', etc. |
+
+### edge_set_member
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| edge_set_id | TEXT | PK, FK → edge_set | |
+| edge_id | TEXT | PK, FK → edge | |
+
+*Note: Even when an edge_set is specified, edges are still pruned if their endpoints fall outside the active node sets. The edge_set provides additional restriction on top of the node-based auto-filtering.*
 
 ---
 
