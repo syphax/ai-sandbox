@@ -44,6 +44,8 @@ def load_scenario_from_yaml(yaml_path: str) -> ScenarioConfig:
         'start_date', 'end_date', 'warm_up_days', 'backorder_probability',
         'write_event_log', 'write_snapshots', 'snapshot_interval_days',
         'dataset_version_id', 'demand_csv', 'params', 'notes',
+        'product_set_id', 'supply_node_set_id', 'distribution_node_set_id',
+        'demand_node_set_id', 'edge_set_id',
     }
     top = {k: v for k, v in raw.items() if k in top_keys}
 
@@ -288,14 +290,18 @@ def _load_initial_inventory(conn, config: ScenarioConfig):
 def _load_scenario(conn, config: ScenarioConfig):
     conn.execute("""
         INSERT OR REPLACE INTO scenario VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, [
         config.scenario_id, config.name, config.description,
         config.dataset_version_id, config.currency_code,
         config.time_resolution, config.start_date, config.end_date,
         config.warm_up_days, config.backorder_probability,
         config.write_event_log, config.write_snapshots,
-        config.snapshot_interval_days, datetime.now(), config.notes,
+        config.snapshot_interval_days,
+        config.product_set_id, config.supply_node_set_id,
+        config.distribution_node_set_id, config.demand_node_set_id,
+        config.edge_set_id,
+        datetime.now(), config.notes,
     ])
 
     for key, value in config.params.items():

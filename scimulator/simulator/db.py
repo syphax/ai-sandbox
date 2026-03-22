@@ -56,6 +56,11 @@ def _create_schema(conn: duckdb.DuckDBPyConnection):
             write_event_log BOOLEAN NOT NULL DEFAULT TRUE,
             write_snapshots BOOLEAN NOT NULL DEFAULT TRUE,
             snapshot_interval_days INTEGER NOT NULL DEFAULT 1,
+            product_set_id TEXT,
+            supply_node_set_id TEXT,
+            distribution_node_set_id TEXT,
+            demand_node_set_id TEXT,
+            edge_set_id TEXT,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             notes TEXT
         )
@@ -227,6 +232,98 @@ def _create_schema(conn: duckdb.DuckDBPyConnection):
         )
     """)
 
+    # --- Entity Set Tables ---
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS product_set (
+            product_set_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS product_set_member (
+            product_set_id TEXT NOT NULL,
+            product_id TEXT NOT NULL,
+            PRIMARY KEY (product_set_id, product_id)
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS supply_node_set (
+            supply_node_set_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS supply_node_set_member (
+            supply_node_set_id TEXT NOT NULL,
+            supply_node_id TEXT NOT NULL,
+            PRIMARY KEY (supply_node_set_id, supply_node_id)
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS distribution_node_set (
+            distribution_node_set_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS distribution_node_set_member (
+            distribution_node_set_id TEXT NOT NULL,
+            dist_node_id TEXT NOT NULL,
+            PRIMARY KEY (distribution_node_set_id, dist_node_id)
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS demand_node_set (
+            demand_node_set_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS demand_node_set_member (
+            demand_node_set_id TEXT NOT NULL,
+            demand_node_id TEXT NOT NULL,
+            PRIMARY KEY (demand_node_set_id, demand_node_id)
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS edge_set (
+            edge_set_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS edge_set_member (
+            edge_set_id TEXT NOT NULL,
+            edge_id TEXT NOT NULL,
+            PRIMARY KEY (edge_set_id, edge_id)
+        )
+    """)
+
     # --- Distance / Rate Tables ---
 
     conn.execute("""
@@ -346,6 +443,24 @@ def _create_schema(conn: duckdb.DuckDBPyConnection):
             config_snapshot TEXT
         )
     """)
+
+
+def clear_scenario_results(conn: duckdb.DuckDBPyConnection, scenario_id: str):
+    """Delete all output data for a scenario (event_log, snapshots, run_metadata).
+
+    Does NOT delete the scenario config itself or any input data.
+    """
+    conn.execute("DELETE FROM event_log WHERE scenario_id = ?", [scenario_id])
+    conn.execute("DELETE FROM inventory_snapshot WHERE scenario_id = ?", [scenario_id])
+    conn.execute("DELETE FROM run_metadata WHERE scenario_id = ?", [scenario_id])
+
+
+def scenario_has_results(conn: duckdb.DuckDBPyConnection, scenario_id: str) -> bool:
+    """Check if a scenario has existing run results."""
+    row = conn.execute(
+        "SELECT COUNT(*) FROM run_metadata WHERE scenario_id = ?", [scenario_id]
+    ).fetchone()
+    return row[0] > 0
 
 
 def _seed_uom(conn: duckdb.DuckDBPyConnection):

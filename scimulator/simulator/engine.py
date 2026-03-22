@@ -64,6 +64,13 @@ class DrawdownEngine:
         self.write_snapshots = self.scenario['write_snapshots']
         self.snapshot_interval = self.scenario['snapshot_interval_days']
 
+        # Entity set filters (None = use all)
+        self.product_set_id = self.scenario.get('product_set_id')
+        self.supply_node_set_id = self.scenario.get('supply_node_set_id')
+        self.distribution_node_set_id = self.scenario.get('distribution_node_set_id')
+        self.demand_node_set_id = self.scenario.get('demand_node_set_id')
+        self.edge_set_id = self.scenario.get('edge_set_id')
+
         # RNG for stochastic elements (backorder/lost-sale coin flip)
         self.rng = np.random.default_rng(42)
 
@@ -135,12 +142,36 @@ class DrawdownEngine:
         return (e - d).days + 1
 
     def _initialize_inventory(self):
-        """Load initial inventory from the database into memory."""
-        rows = self.conn.execute("""
-            SELECT dist_node_id, product_id, inventory_state, quantity
-            FROM initial_inventory
-            WHERE dataset_version_id = ?
-        """, [self.dataset_version_id]).fetchall()
+        """Load initial inventory from the database into memory.
+
+        Filters by active distribution_node_set and product_set if specified.
+        """
+        query = """
+            SELECT i.dist_node_id, i.product_id, i.inventory_state, i.quantity
+            FROM initial_inventory i
+            WHERE i.dataset_version_id = ?
+        """
+        params = [self.dataset_version_id]
+
+        if self.distribution_node_set_id:
+            query += """
+                AND i.dist_node_id IN (
+                    SELECT dist_node_id FROM distribution_node_set_member
+                    WHERE distribution_node_set_id = ?
+                )
+            """
+            params.append(self.distribution_node_set_id)
+
+        if self.product_set_id:
+            query += """
+                AND i.product_id IN (
+                    SELECT product_id FROM product_set_member
+                    WHERE product_set_id = ?
+                )
+            """
+            params.append(self.product_set_id)
+
+        rows = self.conn.execute(query, params).fetchall()
 
         for dist_node_id, product_id, state, qty in rows:
             key = (dist_node_id, product_id, state)
@@ -153,13 +184,44 @@ class DrawdownEngine:
         """Build routing tables: for each demand node, which distribution nodes can fulfill.
 
         Sorted by lowest variable cost first (simple drawdown routing).
+        Filters by active entity sets. Edges with endpoints outside active node
+        sets are pruned. Stranded nodes (no remaining edges) are warned.
         """
-        rows = self.conn.execute("""
+        query = """
             SELECT e.edge_id, e.origin_node_id, e.dest_node_id, e.cost_variable
             FROM edge e
             WHERE e.dest_node_type = 'demand' AND e.origin_node_type = 'distribution'
-            ORDER BY e.cost_variable ASC
-        """).fetchall()
+        """
+        params = []
+
+        if self.edge_set_id:
+            query += """
+                AND e.edge_id IN (
+                    SELECT edge_id FROM edge_set_member WHERE edge_set_id = ?
+                )
+            """
+            params.append(self.edge_set_id)
+
+        if self.distribution_node_set_id:
+            query += """
+                AND e.origin_node_id IN (
+                    SELECT dist_node_id FROM distribution_node_set_member
+                    WHERE distribution_node_set_id = ?
+                )
+            """
+            params.append(self.distribution_node_set_id)
+
+        if self.demand_node_set_id:
+            query += """
+                AND e.dest_node_id IN (
+                    SELECT demand_node_id FROM demand_node_set_member
+                    WHERE demand_node_set_id = ?
+                )
+            """
+            params.append(self.demand_node_set_id)
+
+        query += " ORDER BY e.cost_variable ASC"
+        rows = self.conn.execute(query, params).fetchall()
 
         for edge_id, origin_id, dest_id, cost_var in rows:
             if dest_id not in self._fulfillment_routes:
@@ -216,12 +278,45 @@ class DrawdownEngine:
             self._flush_events()
 
     def _process_inbound_arrivals(self, sim_date: date, sim_step: int):
-        """Process scheduled inbound shipments arriving today."""
-        rows = self.conn.execute("""
+        """Process scheduled inbound shipments arriving today.
+
+        Filters by active supply_node_set, distribution_node_set, and product_set.
+        """
+        query = """
             SELECT inbound_id, supply_node_id, dest_node_id, product_id, quantity
             FROM inbound_schedule
             WHERE dataset_version_id = ? AND arrival_date = ?
-        """, [self.dataset_version_id, sim_date]).fetchall()
+        """
+        params = [self.dataset_version_id, sim_date]
+
+        if self.supply_node_set_id:
+            query += """
+                AND supply_node_id IN (
+                    SELECT supply_node_id FROM supply_node_set_member
+                    WHERE supply_node_set_id = ?
+                )
+            """
+            params.append(self.supply_node_set_id)
+
+        if self.distribution_node_set_id:
+            query += """
+                AND dest_node_id IN (
+                    SELECT dist_node_id FROM distribution_node_set_member
+                    WHERE distribution_node_set_id = ?
+                )
+            """
+            params.append(self.distribution_node_set_id)
+
+        if self.product_set_id:
+            query += """
+                AND product_id IN (
+                    SELECT product_id FROM product_set_member
+                    WHERE product_set_id = ?
+                )
+            """
+            params.append(self.product_set_id)
+
+        rows = self.conn.execute(query, params).fetchall()
 
         for inbound_id, supply_node_id, dest_node_id, product_id, qty in rows:
             qty = float(qty)
@@ -278,13 +373,37 @@ class DrawdownEngine:
         self._backorders = remaining_backorders
 
     def _process_demand(self, sim_date: date, sim_step: int):
-        """Process all demand events for this day."""
-        rows = self.conn.execute("""
+        """Process all demand events for this day.
+
+        Filters by active demand_node_set and product_set.
+        """
+        query = """
             SELECT demand_id, demand_node_id, product_id, quantity
             FROM demand
             WHERE dataset_version_id = ? AND demand_date = ?
-            ORDER BY demand_datetime ASC NULLS LAST
-        """, [self.dataset_version_id, sim_date]).fetchall()
+        """
+        params = [self.dataset_version_id, sim_date]
+
+        if self.demand_node_set_id:
+            query += """
+                AND demand_node_id IN (
+                    SELECT demand_node_id FROM demand_node_set_member
+                    WHERE demand_node_set_id = ?
+                )
+            """
+            params.append(self.demand_node_set_id)
+
+        if self.product_set_id:
+            query += """
+                AND product_id IN (
+                    SELECT product_id FROM product_set_member
+                    WHERE product_set_id = ?
+                )
+            """
+            params.append(self.product_set_id)
+
+        query += " ORDER BY demand_datetime ASC NULLS LAST"
+        rows = self.conn.execute(query, params).fetchall()
 
         for demand_id, demand_node_id, product_id, qty in rows:
             qty = float(qty)
@@ -382,12 +501,27 @@ class DrawdownEngine:
                             demand_id=demand_id)
 
     def _record_fixed_costs(self, sim_date: date, sim_step: int):
-        """Record daily fixed costs for active distribution nodes."""
-        rows = self.conn.execute("""
-            SELECT dist_node_id, fixed_cost, fixed_cost_basis
-            FROM distribution_node
-            WHERE fixed_cost > 0
-        """).fetchall()
+        """Record daily fixed costs for active distribution nodes.
+
+        Filters by active distribution_node_set.
+        """
+        query = """
+            SELECT dn.dist_node_id, dn.fixed_cost, dn.fixed_cost_basis
+            FROM distribution_node dn
+            WHERE dn.fixed_cost > 0
+        """
+        params = []
+
+        if self.distribution_node_set_id:
+            query += """
+                AND dn.dist_node_id IN (
+                    SELECT dist_node_id FROM distribution_node_set_member
+                    WHERE distribution_node_set_id = ?
+                )
+            """
+            params.append(self.distribution_node_set_id)
+
+        rows = self.conn.execute(query, params).fetchall()
 
         for dist_node_id, fixed_cost, basis in rows:
             if basis == 'per_day':

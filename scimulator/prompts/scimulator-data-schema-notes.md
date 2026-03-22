@@ -111,3 +111,15 @@ A: Yes, sets would be used to define sub-sets within a data version
 12. **Set metadata**: Should sets have descriptive metadata (name, description, created_by, created_at) for manageability? I'd assume yes, especially for the future AI assistant use case where you'd want to record how/why a set was created.
 
 A: Yes
+
+## Scenario Re-run Behavior
+
+When a user edits a scenario config and tries to run it again, we need to handle three use cases:
+
+1. **Trash and replace** — the previous run was junk; re-run with the same scenario_id
+2. **Fork** — keep the original results and run a variant under a new ID
+3. **Accidental overwrite** — user doesn't realize they're clobbering results
+
+Design decision: **default is to refuse to overwrite**. If `run_metadata` already has results for the scenario_id, the CLI stops with an error and suggests options:
+- `--replace` flag: deletes old event_log, inventory_snapshot, and run_metadata for that scenario_id, then re-runs
+- `--fork <new_id>` flag: creates a new scenario record with the new ID, copies config, runs under the new ID

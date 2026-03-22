@@ -158,6 +158,13 @@ class ScenarioConfig:
     inbound_schedule: List[InboundShipment] = field(default_factory=list)
     initial_inventory: List[InitialInventory] = field(default_factory=list)
 
+    # Entity set references (NULL = use all entities of that type)
+    product_set_id: Optional[str] = None
+    supply_node_set_id: Optional[str] = None
+    distribution_node_set_id: Optional[str] = None
+    demand_node_set_id: Optional[str] = None
+    edge_set_id: Optional[str] = None
+
     # Scenario params (key-value overrides)
     params: Dict[str, str] = field(default_factory=dict)
     notes: str = ""

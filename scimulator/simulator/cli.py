@@ -19,6 +19,7 @@ def cmd_run(args):
     """Load a scenario YAML and run the simulation."""
     from .loader import load_scenario_from_yaml, load_scenario_into_db
     from .engine import DrawdownEngine
+    from .db import open_database, scenario_has_results, clear_scenario_results
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format='%(asctime)s %(levelname)s %(name)s: %(message)s')
@@ -30,17 +31,40 @@ def cmd_run(args):
     logger.info(f"Loading scenario from {yaml_path}")
     config = load_scenario_from_yaml(yaml_path)
 
+    # Handle --fork: override the scenario_id
+    scenario_id = config.scenario_id
+    if args.fork:
+        scenario_id = args.fork
+        config.scenario_id = scenario_id
+        logger.info(f"Forking scenario as: {scenario_id}")
+
+    # Check for existing results
+    if Path(db_path).exists():
+        check_conn = open_database(db_path)
+        if scenario_has_results(check_conn, scenario_id):
+            if args.replace:
+                logger.info(f"Replacing existing results for: {scenario_id}")
+                clear_scenario_results(check_conn, scenario_id)
+            else:
+                check_conn.close()
+                print(f"\nError: Scenario '{scenario_id}' already has results in {db_path}")
+                print(f"\nOptions:")
+                print(f"  --replace    Delete old results and re-run")
+                print(f"  --fork ID    Run as a new scenario with a different ID")
+                sys.exit(1)
+        check_conn.close()
+
     logger.info(f"Loading data into {db_path}")
     conn = load_scenario_into_db(config, db_path)
 
-    logger.info(f"Running simulation: {config.scenario_id}")
-    engine = DrawdownEngine(conn, config.scenario_id)
+    logger.info(f"Running simulation: {scenario_id}")
+    engine = DrawdownEngine(conn, scenario_id)
     engine.run()
 
     conn.close()
     logger.info(f"Done. Results in {db_path}")
     print(f"\nSimulation complete. Database: {db_path}")
-    print(f"Run: python -m scimulator.simulator.cli results {db_path} {config.scenario_id}")
+    print(f"Run: python -m scimulator.simulator.cli results {db_path} {scenario_id}")
 
 
 def cmd_results(args):
@@ -207,6 +231,10 @@ Examples:
     run_parser.add_argument('scenario', help='Path to scenario YAML file')
     run_parser.add_argument('--db', help='Output DuckDB path (default: same name as YAML)')
     run_parser.add_argument('-v', '--verbose', action='store_true')
+    run_parser.add_argument('--replace', action='store_true',
+                            help='Delete existing results and re-run the scenario')
+    run_parser.add_argument('--fork', metavar='NEW_ID',
+                            help='Run as a new scenario with a different ID')
 
     # results
     results_parser = subparsers.add_parser('results', help='Show results for a simulation run')
