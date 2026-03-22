@@ -1,6 +1,9 @@
 {
   "permissions": {
     "allow": [
+      "Bash(*)",
+      "Edit",
+      "Write",
       "Bash(npm info:*)",
       "Bash(chmod:*)"
     ]

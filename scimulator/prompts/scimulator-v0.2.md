@@ -47,14 +47,21 @@ The simulation engine is **stateless**. All state lives in DuckDB. The engine ac
 
 ### 2.3 Units of Measure
 
-Internal storage uses metric units. The UI supports display in both metric and imperial.
+Every measured value in the schema has an explicit UoM column (e.g. `storage_capacity` + `storage_capacity_uom`). This prevents ambiguity and allows mixed units where natural (e.g. liters for product cube, cubic meters for warehouse capacity). A `uom` reference table defines valid units with conversion factors, enabling the engine to validate and auto-convert.
 
-| Dimension | Internal Unit | Imperial Equivalent |
-|-----------|--------------|---------------------|
-| Mass      | kg           | lbs                 |
-| Volume    | liters (L)   | cuft                |
-| Length    | cm           | in                  |
-| Distance  | km           | mi                  |
+Default metric units by dimension:
+
+| Dimension | Default Unit | Common Alternatives |
+|-----------|-------------|---------------------|
+| Mass      | kg          | lb, g               |
+| Volume    | L (product), m3 (facility) | cuft, gal |
+| Length    | cm          | in                  |
+| Distance  | km          | mi                  |
+| Time      | days        | hours               |
+
+Cost fields use a `_basis` column instead of a UoM, describing what the cost is per (e.g. `per_unit`, `per_m3`, `per_order`, `pct_value`). This supports flexible cost structures — the same `variable_cost` field can represent per-unit, per-volume, or percentage-of-value costs depending on the basis.
+
+The UI supports display in both metric and imperial units.
 
 ### 2.4 Currency
 
@@ -93,14 +100,14 @@ Intermediate nodes that receive, store, and ship products. May be arranged in mu
 
 Key attributes:
 * **Tags**: Arbitrary, multi-valued type tags (e.g., "retail_store", "regional_fc", "national_dc"). Tags drive policy application. A single node can have multiple tags to represent co-located functions sharing capacity.
-* **Storage capacity**: Cube (liters)
-* **Inbound capacity**: Cube or units per day
-* **Outbound capacity**: Cube, units, or orders per day
-* **Order response time**: Time from order placement to shipment (node-level initially; future: per node-product)
-* **Fixed cost**: Per time period
-* **Variable cost**: Per unit, order, or cube shipped
+* **Storage capacity**: Volume with explicit UoM (default m3 for facilities)
+* **Inbound capacity**: Per day, with explicit UoM (units, m3, etc.)
+* **Outbound capacity**: Per day, with explicit UoM (units, orders, m3, etc.)
+* **Order response time**: Time from order placement to shipment, with UoM (node-level initially; future: per node-product)
+* **Fixed cost**: With explicit basis (default: per day)
+* **Variable cost**: With explicit basis (e.g., per_unit, per_order, per_m3, pct_value)
 * **Outbound modes**: Supported transport types (TL, LTL, parcel, flex)
-* **Overage penalty cost**: Per-unit-per-day cost when capacity is exceeded (defaults to a multiple of variable cost)
+* **Overage penalty cost**: With explicit basis; defaults to 2x variable cost if not specified
 
 #### Capacity Enforcement
 
@@ -243,7 +250,8 @@ A scenario fully defines a simulation run. This model is established from day on
 * **Currency**: ISO currency code (e.g., "USD", "EUR")
 * **Output settings**:
     * `write_event_log`: Boolean
-    * `write_snapshots`: Boolean (future: retention policy, e.g., "last 30 days")
+    * `write_snapshots`: Boolean (can be disabled if storage is a concern)
+    * `snapshot_interval_days`: Integer, default 1. Controls how often inventory snapshots are written (1 = daily, 7 = weekly, etc.). Any point-in-time state can be reconstructed from the nearest prior snapshot plus event log replay.
 
 ### 8.2 Data Versioning
 
@@ -257,7 +265,7 @@ Every discrete event is recorded as a row: shipments, receipts, fulfillments, ba
 
 ### 9.2 State Snapshots
 
-End-of-period inventory levels and KPI summaries per node, per day. Sparse (non-zero only). These enable fast aggregate queries without scanning the full event log. Writing snapshots is configurable (can be disabled if storage is a concern).
+Periodic inventory positions by node/product/state. Sparse (non-zero only). Snapshot frequency is configurable via `snapshot_interval_days` (default: daily). For less frequent snapshots, any specific day's state can be reconstructed from the nearest prior snapshot plus event log replay. Writing snapshots can be disabled entirely if storage is a concern.
 
 ### 9.3 Key Performance Indicators
 
@@ -374,3 +382,69 @@ Each phase produces a working, testable system. Each phase avoids rework of prio
 * **Order and fulfillment logic**: Detailed design deferred to Phase 3. The plugin pattern ensures the drawdown engine doesn't need to change.
 * **Sub-daily time resolution**: Daily/hourly mismatch handling (e.g., carrier cut-off times) is identified but deferred past Phase 1.
 * **Steady-state initialization**: Simple warm-up period (configurable `warm_up_days`) for Phase 3. Heuristic pre-computation of starting inventory (average demand × target days-of-supply) is a tractable near-term enhancement.
+
+## 14. Future Features Backlog
+
+Consolidated list of all features mentioned as future enhancements throughout this spec. Grouped by domain, roughly ordered by expected priority within each group. Phase references indicate the earliest likely phase.
+
+### Network & Topology
+| Feature | Description | Earliest Phase |
+|---------|-------------|----------------|
+| LTL cost structures | LTL-specific rating models for transportation edges | Phase 3 |
+| Configurable hard capacity caps | Hard-cap multiplier per constraint type (e.g., reject at 1.5x) alongside soft constraints | Phase 3 |
+| Order response time per node-product | Granular processing time that varies by product at a given node, not just node-level | Phase 3 |
+| Cross-docking / re-routing | Diversion decisions at time of receipt | Phase 5 |
+| Inventory rebalancing | Transfers between distribution nodes to optimize stock positioning | Phase 5 |
+
+### Products & Demand
+| Feature | Description | Earliest Phase |
+|---------|-------------|----------------|
+| Multi-SKU orders | Bundle single-line demand into multi-SKU orders via explicit order ID | Phase 2 |
+| Supersessions | Product replacement chains (old SKU → new SKU) | Phase 5 |
+| Kits | Composite products assembled from component SKUs | Phase 5 |
+
+### Simulation Logic
+| Feature | Description | Earliest Phase |
+|---------|-------------|----------------|
+| Order fulfillment logic | Routing rules, node selection for fulfilling customer orders | Phase 3 |
+| Supplier ordering logic | Reorder points, safety stock, demand forecasting | Phase 3 |
+| Transportation mode selection | Choosing among available transport modes per edge | Phase 3 |
+| Backorder probability by delivery promise | Lost-sale probability that increases with expected delivery time | Phase 3 |
+| Delivery speed variability | Model variance in last-mile delivery for O2D variance KPI | Phase 3 |
+| Demand forecasting | Forecast-driven ordering and allocation decisions | Phase 3+ |
+| Steady-state initialization heuristic | Pre-compute starting inventory as avg demand × target days-of-supply | Phase 3 |
+
+### Time Resolution
+| Feature | Description | Earliest Phase |
+|---------|-------------|----------------|
+| Sub-daily ordering (carrier cut-offs) | Differentiate early vs. late orders within a day for outbound cut-off logic | Phase 3 |
+| Data resolution mismatch handling | Aggregate hourly input data into daily steps (or vice versa) | Phase 2 |
+
+### Data & Storage
+| Feature | Description | Earliest Phase |
+|---------|-------------|----------------|
+| Multi-currency with exchange rates | Multiple currencies within a single scenario with conversion tables | Phase 4+ |
+| Snapshot retention policies | Keep only last N days of snapshots instead of all-or-nothing | Phase 4 |
+| Data import/export | Easy upload/download of input and output datasets | Phase 2 |
+| Data versioning | Immutable named datasets with copy-and-modify via AI agent | Phase 4 |
+
+### Scenarios & Scale
+| Feature | Description | Earliest Phase |
+|---------|-------------|----------------|
+| Scenario save/reload | Persist and reload scenario configurations | Phase 2 |
+| Batch scenario execution | Define and run many scenarios in parallel | Phase 4 |
+| Scenario comparison views | KPI diff tables, map overlays comparing scenarios | Phase 4 |
+
+### UI & Infrastructure
+| Feature | Description | Earliest Phase |
+|---------|-------------|----------------|
+| AI agent interface | Natural language config changes and report queries | Phase 5 |
+| Mobile UI | Simplified responsive interface for phone and tablet | Phase 5 |
+| Docker deployment | Containerized deployment for flexible scaling | Phase 5 |
+
+### Inventory States
+| Feature | Description | Earliest Phase |
+|---------|-------------|----------------|
+| Quarantine state | Inventory held pending inspection | Phase 3+ |
+| Returned state | Customer returns flowing back into inventory | Phase 3+ |
+| Additional damage pathways | More transitions into the damaged state | Phase 3+ |

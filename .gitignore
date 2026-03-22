@@ -3,6 +3,10 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# DuckDB database files
+*.duckdb
+*.duckdb.wal
+
 # C extensions
 *.so
 
@@ -146,6 +150,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv-3.13/
 
 # Spyder project settings
 .spyderproject

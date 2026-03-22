@@ -5,8 +5,10 @@ This document defines the DuckDB relational schema for the Distribution SCimulat
 ## Conventions
 
 * All IDs are TEXT (human-readable, user-defined)
-* All monetary values are DECIMAL(12,4) in the scenario's configured currency
-* All weights are in kg, volumes in liters, distances in km
+* All monetary values are DECIMAL(12,4)
+* All measured values have an explicit `_uom` column (unit of measure) referencing the `uom` table
+* All cost fields have an explicit `_basis` column describing what the cost is per (e.g. 'per_unit', 'per_m3', 'pct_value')
+* Default metric units: kg (mass), L (product volume), m3 (facility volume), km (distance), days (time)
 * Timestamps are TIMESTAMP; dates are DATE
 * Sparse storage: missing inventory rows imply zero quantity
 * PK = Primary Key, FK = Foreign Key, NN = Not Null
@@ -14,6 +16,11 @@ This document defines the DuckDB relational schema for the Distribution SCimulat
 ---
 
 ## Table Summary
+
+### Reference Tables
+| Table | Description |
+|-------|-------------|
+| uom | Unit of measure definitions with conversion factors |
 
 ### Configuration / Input Tables
 | Table | Description |
@@ -50,6 +57,59 @@ This document defines the DuckDB relational schema for the Distribution SCimulat
 
 ---
 
+## Reference Tables
+
+### uom
+Unit of measure definitions. The engine uses this for validation and automatic conversion.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| uom_code | TEXT | PK | Short code (e.g. 'kg', 'lb', 'L', 'm3', 'km', 'mi') |
+| uom_name | TEXT | NN | Full name (e.g. 'kilogram', 'pound') |
+| dimension | TEXT | NN | Dimension category: 'mass', 'volume', 'length', 'distance', 'time', 'currency', 'count' |
+| is_metric_default | BOOLEAN | NN, default FALSE | TRUE if this is the default metric unit for its dimension |
+| conversion_to_default | DECIMAL(18,10) | NN | Multiply by this to convert to the metric default for this dimension |
+
+**Seed data**:
+
+| uom_code | uom_name | dimension | is_metric_default | conversion_to_default |
+|----------|----------|-----------|-------------------|-----------------------|
+| kg | kilogram | mass | TRUE | 1.0 |
+| lb | pound | mass | FALSE | 0.45359237 |
+| g | gram | mass | FALSE | 0.001 |
+| L | liter | volume | TRUE | 1.0 |
+| m3 | cubic meter | volume | FALSE | 1000.0 |
+| cuft | cubic foot | volume | FALSE | 28.3168466 |
+| gal | gallon (US) | volume | FALSE | 3.78541 |
+| cm | centimeter | length | TRUE | 1.0 |
+| in | inch | length | FALSE | 2.54 |
+| km | kilometer | distance | TRUE | 1.0 |
+| mi | mile | distance | FALSE | 1.609344 |
+| days | days | time | TRUE | 1.0 |
+| hours | hours | time | FALSE | 0.0416667 |
+| unit | unit | count | TRUE | 1.0 |
+| order | order | count | FALSE | 1.0 |
+
+*Note: Currency conversion is handled separately via `scenario.currency_code`, not the uom table.*
+
+**Valid cost basis values** (not in this table, but defined here for reference):
+
+| basis | Meaning |
+|-------|---------|
+| per_unit | Per unit shipped/stored |
+| per_order | Per order processed |
+| per_kg | Per kilogram |
+| per_L | Per liter |
+| per_m3 | Per cubic meter |
+| per_kg_km | Per kilogram per kilometer |
+| per_L_km | Per liter per kilometer |
+| per_m3_km | Per cubic meter per kilometer |
+| pct_value | Percentage of product value |
+| per_day | Per day |
+| fixed | Fixed amount per event/period |
+
+---
+
 ## Configuration Tables
 
 ### scenario
@@ -69,6 +129,7 @@ Top-level definition of a simulation run.
 | backorder_probability | DECIMAL(5,4) | NN, default 1.0 | Probability unfulfilled demand is backordered (vs. lost sale) |
 | write_event_log | BOOLEAN | NN, default TRUE | Whether to write event log |
 | write_snapshots | BOOLEAN | NN, default TRUE | Whether to write inventory snapshots |
+| snapshot_interval_days | INTEGER | NN, default 1 | Days between inventory snapshots (1 = daily, 7 = weekly, etc.). Any point-in-time state can be reconstructed from nearest prior snapshot + event log replay. |
 | created_at | TIMESTAMP | NN | Creation timestamp |
 | notes | TEXT | | User notes |
 
@@ -104,11 +165,14 @@ Supplier entities (may own multiple supply nodes).
 |--------|------|-------------|-------------|
 | supplier_id | TEXT | PK | Unique supplier identifier |
 | name | TEXT | NN | Supplier name |
-| default_lead_time_days | DECIMAL(6,2) | | Default order lead time |
+| default_lead_time | DECIMAL(6,2) | | Default order lead time |
+| default_lead_time_uom | TEXT | FK → uom, default 'days' | |
 | default_qty_reliability | DECIMAL(5,4) | default 1.0 | Default probability of shipping full quantity |
-| default_timing_variance_days | DECIMAL(6,2) | default 0.0 | Default mean timing variance (positive = late) |
+| default_timing_variance | DECIMAL(6,2) | default 0.0 | Default mean timing variance (positive = late) |
+| default_timing_variance_uom | TEXT | FK → uom, default 'days' | |
 | timing_variance_distribution | TEXT | default 'normal' | Distribution type for timing variance |
-| timing_variance_std_days | DECIMAL(6,2) | | Std dev for timing distribution |
+| timing_variance_std | DECIMAL(6,2) | | Std dev for timing distribution |
+| timing_variance_std_uom | TEXT | FK → uom, default 'days' | |
 
 ### supply_node
 Individual supply locations.
@@ -120,12 +184,16 @@ Individual supply locations.
 | name | TEXT | NN | Node name |
 | latitude | DECIMAL(9,6) | | Location latitude |
 | longitude | DECIMAL(9,6) | | Location longitude |
-| lead_time_days | DECIMAL(6,2) | nullable | Override of supplier default |
+| lead_time | DECIMAL(6,2) | nullable | Override of supplier default |
+| lead_time_uom | TEXT | FK → uom, nullable | |
 | qty_reliability | DECIMAL(5,4) | nullable | Override of supplier default |
-| timing_variance_days | DECIMAL(6,2) | nullable | Override of supplier default |
+| timing_variance | DECIMAL(6,2) | nullable | Override of supplier default |
+| timing_variance_uom | TEXT | FK → uom, nullable | |
 | timing_variance_distribution | TEXT | nullable | Override of supplier default |
-| timing_variance_std_days | DECIMAL(6,2) | nullable | Override of supplier default |
-| max_capacity_units_per_day | DECIMAL(12,2) | nullable | NULL = infinite capacity |
+| timing_variance_std | DECIMAL(6,2) | nullable | Override of supplier default |
+| timing_variance_std_uom | TEXT | FK → uom, nullable | |
+| max_capacity | DECIMAL(12,2) | nullable | NULL = infinite capacity |
+| max_capacity_uom | TEXT | FK → uom, nullable | e.g. 'unit' (per day implied by time step) |
 
 ### supply_node_tag
 Multi-valued tags for supply nodes.
@@ -154,16 +222,20 @@ Distribution, fulfillment, and warehousing locations.
 | name | TEXT | NN | Node name |
 | latitude | DECIMAL(9,6) | | Location latitude |
 | longitude | DECIMAL(9,6) | | Location longitude |
-| storage_capacity_l | DECIMAL(14,2) | nullable | Max storage volume (liters). NULL = unlimited |
-| max_inbound_units_per_day | DECIMAL(12,2) | nullable | NULL = unlimited |
-| max_outbound_units_per_day | DECIMAL(12,2) | nullable | NULL = unlimited |
-| max_outbound_orders_per_day | DECIMAL(12,2) | nullable | NULL = unlimited |
-| order_response_time_days | DECIMAL(6,2) | NN, default 1.0 | Time from order to shipment |
-| fixed_cost_per_day | DECIMAL(12,4) | default 0 | Fixed operating cost per day |
-| variable_cost_per_unit | DECIMAL(12,4) | default 0 | Variable cost per unit shipped |
-| variable_cost_per_order | DECIMAL(12,4) | default 0 | Variable cost per order shipped |
-| variable_cost_per_l | DECIMAL(12,4) | default 0 | Variable cost per liter shipped |
-| overage_penalty_per_unit_day | DECIMAL(12,4) | nullable | Penalty for exceeding capacity. NULL = use 2x variable_cost_per_unit |
+| storage_capacity | DECIMAL(14,2) | nullable | Max storage volume. NULL = unlimited |
+| storage_capacity_uom | TEXT | FK → uom, default 'm3' | e.g. 'm3', 'L', 'cuft' |
+| max_inbound | DECIMAL(12,2) | nullable | Max inbound per day. NULL = unlimited |
+| max_inbound_uom | TEXT | FK → uom, nullable | e.g. 'unit', 'm3' |
+| max_outbound | DECIMAL(12,2) | nullable | Max outbound per day. NULL = unlimited |
+| max_outbound_uom | TEXT | FK → uom, nullable | e.g. 'unit', 'order', 'm3' |
+| order_response_time | DECIMAL(6,2) | NN, default 1.0 | Time from order placement to shipment |
+| order_response_time_uom | TEXT | FK → uom, default 'days' | |
+| fixed_cost | DECIMAL(12,4) | default 0 | Fixed operating cost |
+| fixed_cost_basis | TEXT | NN, default 'per_day' | |
+| variable_cost | DECIMAL(12,4) | default 0 | Variable operating cost |
+| variable_cost_basis | TEXT | NN, default 'per_unit' | e.g. 'per_unit', 'per_order', 'per_L', 'per_m3', 'pct_value' |
+| overage_penalty | DECIMAL(12,4) | nullable | Penalty for exceeding capacity. NULL = use 2x variable_cost |
+| overage_penalty_basis | TEXT | nullable | e.g. 'per_unit' (per day implied). NULL inherits variable_cost_basis |
 
 ### distribution_node_tag
 Multi-valued tags for distribution nodes.
@@ -195,16 +267,17 @@ Transportation links between nodes. Supports supply→dist, dist→dist, and dis
 | dest_node_id | TEXT | NN | Destination node ID (distribution or demand) |
 | dest_node_type | TEXT | NN | 'distribution' or 'demand' |
 | transport_type | TEXT | NN | 'parcel', 'air', 'tl', 'ltl', 'flex', 'multi_modal', 'ocean_dray' |
-| mean_transit_time_days | DECIMAL(8,4) | NN | Mean transit time |
+| mean_transit_time | DECIMAL(8,4) | NN | Mean transit time |
+| mean_transit_time_uom | TEXT | FK → uom, default 'days' | |
 | transit_time_distribution | TEXT | default 'lognormal' | Distribution type for transit variability |
-| transit_time_std_days | DECIMAL(8,4) | nullable | Std dev for transit time distribution |
+| transit_time_std | DECIMAL(8,4) | nullable | Std dev for transit time distribution |
+| transit_time_std_uom | TEXT | FK → uom, nullable | Defaults to mean_transit_time_uom |
 | transit_time_skew | DECIMAL(8,4) | nullable | Skew parameter (for asymmetric distributions) |
-| cost_model | TEXT | NN, default 'per_unit_distance' | Cost calculation method |
 | cost_fixed | DECIMAL(12,4) | default 0 | Fixed cost per shipment |
-| cost_per_unit | DECIMAL(12,4) | default 0 | Cost per unit |
-| cost_per_kg_km | DECIMAL(12,6) | default 0 | Cost per kg per km |
-| cost_per_l_km | DECIMAL(12,6) | default 0 | Cost per liter per km |
-| distance_km | DECIMAL(10,2) | nullable | Pre-computed distance (NULL = compute at runtime) |
+| cost_variable | DECIMAL(12,4) | default 0 | Variable transport cost |
+| cost_variable_basis | TEXT | default 'per_unit' | e.g. 'per_unit', 'per_kg', 'per_kg_km', 'per_L_km', 'pct_value' |
+| distance | DECIMAL(10,2) | nullable | Pre-computed distance (NULL = compute at runtime) |
+| distance_uom | TEXT | FK → uom, default 'km' | |
 | distance_method | TEXT | nullable | 'haversine', 'driving', 'zone_table' |
 
 *Note: Edges can be auto-generated from tag-based rules. The `edge` table stores the projected node-to-node result.*
@@ -220,20 +293,24 @@ Product master.
 |--------|------|-------------|-------------|
 | product_id | TEXT | PK | Unique SKU identifier |
 | name | TEXT | NN | Product name |
-| standard_cost | DECIMAL(12,4) | NN | Standard unit cost |
-| base_price | DECIMAL(12,4) | NN | Base selling price |
-| weight_kg | DECIMAL(10,4) | NN | Weight per unit |
-| cube_l | DECIMAL(10,4) | NN | Volume per unit (liters) |
+| standard_cost | DECIMAL(12,4) | NN | Standard unit cost (in scenario currency) |
+| base_price | DECIMAL(12,4) | NN | Base selling price (in scenario currency) |
+| weight | DECIMAL(10,4) | NN | Weight per unit |
+| weight_uom | TEXT | FK → uom, default 'kg' | |
+| cube | DECIMAL(10,4) | NN | Volume per unit |
+| cube_uom | TEXT | FK → uom, default 'L' | |
 | orderable_qty | INTEGER | NN, default 1 | Minimum orderable quantity |
 
 ### product_attribute
-Extensible key-value attributes.
+Extensible key-value attributes for intrinsic product properties. Relationship-dependent attributes (e.g. supplier-specific MOQ) belong on the relevant relationship table.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | product_id | TEXT | PK, FK → product | |
 | attribute_key | TEXT | PK | Attribute name (e.g. 'brand', 'major_line') |
-| attribute_value | TEXT | NN | Attribute value |
+| value_type | TEXT | NN, default 'text' | 'text', 'integer', or 'decimal' |
+| attribute_value | TEXT | NN | Human-readable value (always populated, even for numeric types) |
+| value_numeric | DECIMAL(14,4) | nullable | Populated when value_type is 'integer' or 'decimal'. Enables numeric filtering/aggregation without casting. |
 
 ---
 
@@ -247,7 +324,8 @@ Pre-computed or imported pairwise distances.
 | origin_id | TEXT | PK | Node ID or ZIP3 |
 | dest_id | TEXT | PK | Node ID or ZIP3 |
 | method | TEXT | PK | 'haversine', 'driving' |
-| distance_km | DECIMAL(10,2) | NN | Distance |
+| distance | DECIMAL(10,2) | NN | Distance value |
+| distance_uom | TEXT | FK → uom, default 'km' | |
 
 ### zone_table
 Carrier zone and speed tables (ZIP3-based).
@@ -260,8 +338,10 @@ Carrier zone and speed tables (ZIP3-based).
 | dest_zip3 | TEXT | PK | Destination ZIP3 |
 | zone | INTEGER | NN | Zone number |
 | transit_days | DECIMAL(4,1) | NN | Expected transit days |
-| cost_per_lb | DECIMAL(8,4) | nullable | Per-pound rate |
-| cost_per_dimweight_lb | DECIMAL(8,4) | nullable | Per dim-weight-pound rate |
+| cost_per_weight | DECIMAL(8,4) | nullable | Per-weight rate |
+| cost_per_weight_uom | TEXT | FK → uom, nullable | e.g. 'lb', 'kg' |
+| cost_per_dimweight | DECIMAL(8,4) | nullable | Per dim-weight rate |
+| cost_per_dimweight_uom | TEXT | FK → uom, nullable | e.g. 'lb', 'kg' |
 | cost_base | DECIMAL(8,4) | nullable | Base charge |
 
 ---
@@ -348,7 +428,7 @@ Append-only log of every discrete simulation event.
 * `backorder_fulfilled` — previously backordered demand is fulfilled
 
 ### inventory_snapshot
-End-of-period inventory positions. Sparse: only non-zero rows.
+Periodic inventory positions. Sparse: only non-zero rows. Frequency controlled by `scenario.snapshot_interval_days`.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -358,7 +438,8 @@ End-of-period inventory positions. Sparse: only non-zero rows.
 | product_id | TEXT | FK → product | |
 | inventory_state | TEXT | | 'in_transit', 'received', 'saleable', 'committed', 'damaged' |
 | quantity | DECIMAL(12,2) | NN | Units on hand |
-| cube_l | DECIMAL(14,2) | nullable | Total volume (quantity × product cube) |
+| total_cube | DECIMAL(14,2) | nullable | Total volume (quantity × product cube) |
+| total_cube_uom | TEXT | FK → uom, default 'L' | |
 
 *Composite key: (scenario_id, sim_date, dist_node_id, product_id, inventory_state)*
 
