@@ -269,7 +269,10 @@ class DrawdownEngine:
         # 5. Record daily fixed costs for distribution nodes
         self._record_fixed_costs(sim_date, sim_step)
 
-        # 6. Write inventory snapshot (if enabled and on schedule)
+        # 6. Check for storage capacity overages (soft constraint penalties)
+        self._check_capacity_overages(sim_date, sim_step)
+
+        # 7. Write inventory snapshot (if enabled and on schedule)
         if self.write_snapshots and sim_step % self.snapshot_interval == 0:
             self._write_snapshot(sim_date)
 
@@ -501,10 +504,7 @@ class DrawdownEngine:
                             demand_id=demand_id)
 
     def _record_fixed_costs(self, sim_date: date, sim_step: int):
-        """Record daily fixed costs for active distribution nodes.
-
-        Filters by active distribution_node_set.
-        """
+        """Record daily fixed costs for active distribution nodes."""
         query = """
             SELECT dn.dist_node_id, dn.fixed_cost, dn.fixed_cost_basis
             FROM distribution_node dn
@@ -525,13 +525,105 @@ class DrawdownEngine:
 
         for dist_node_id, fixed_cost, basis in rows:
             if basis == 'per_day':
-                self._log_event(sim_date, sim_step, 'capacity_overage',
+                self._log_event(sim_date, sim_step, 'fixed_cost',
                                 node_id=dist_node_id, node_type='distribution',
                                 cost=float(fixed_cost),
                                 detail=json.dumps({
                                     'cost_type': 'fixed_cost',
                                     'basis': basis,
                                 }))
+
+    def _check_capacity_overages(self, sim_date: date, sim_step: int):
+        """Check if any distribution node exceeds storage capacity.
+
+        Capacity uses soft constraints: overages are allowed but incur
+        penalty costs. The penalty is overage_penalty if set on the node,
+        otherwise 2x the node's variable_cost.
+        """
+        query = """
+            SELECT dn.dist_node_id, dn.storage_capacity, dn.storage_capacity_uom,
+                   dn.variable_cost, dn.variable_cost_basis,
+                   dn.overage_penalty, dn.overage_penalty_basis
+            FROM distribution_node dn
+            WHERE dn.storage_capacity IS NOT NULL
+        """
+        params = []
+
+        if self.distribution_node_set_id:
+            query += """
+                AND dn.dist_node_id IN (
+                    SELECT dist_node_id FROM distribution_node_set_member
+                    WHERE distribution_node_set_id = ?
+                )
+            """
+            params.append(self.distribution_node_set_id)
+
+        nodes = self.conn.execute(query, params).fetchall()
+        if not nodes:
+            return
+
+        # Pre-load product cube data (cached after first call)
+        if not hasattr(self, '_product_cubes'):
+            self._product_cubes = {}
+            rows = self.conn.execute(
+                "SELECT product_id, cube, cube_uom FROM product"
+            ).fetchall()
+            for pid, cube, cube_uom in rows:
+                self._product_cubes[pid] = (float(cube), cube_uom)
+
+        for (dist_node_id, capacity, capacity_uom,
+             variable_cost, variable_cost_basis,
+             overage_penalty, overage_penalty_basis) in nodes:
+
+            capacity = float(capacity)
+            if capacity <= 0:
+                continue
+
+            # Sum current inventory volume at this node (non-terminal states)
+            total_cube = 0.0
+            for (nid, pid, state), qty in self._inventory.items():
+                if nid != dist_node_id or qty <= 0 or state in TERMINAL_STATES:
+                    continue
+                cube_per_unit, _ = self._product_cubes.get(pid, (0, 'L'))
+                total_cube += qty * cube_per_unit
+
+            # Convert product cube (liters) to capacity UoM.
+            # storage_capacity is typically m3; product cube is in liters.
+            # 1 m3 = 1000 L
+            if capacity_uom == 'm3':
+                total_cube_in_capacity_uom = total_cube / 1000.0
+            else:
+                # If same UoM or unknown, assume no conversion needed
+                total_cube_in_capacity_uom = total_cube
+
+            overage = total_cube_in_capacity_uom - capacity
+            if overage <= 0:
+                continue
+
+            # Calculate penalty cost
+            # Default: 2x variable cost per unit of overage (in capacity UoM)
+            if overage_penalty is not None:
+                penalty_rate = float(overage_penalty)
+            elif variable_cost is not None:
+                penalty_rate = float(variable_cost) * 2.0
+            else:
+                penalty_rate = 0.0
+
+            if penalty_rate <= 0:
+                continue
+
+            penalty_cost = overage * penalty_rate
+
+            self._log_event(sim_date, sim_step, 'capacity_overage',
+                            node_id=dist_node_id, node_type='distribution',
+                            cost=penalty_cost,
+                            detail=json.dumps({
+                                'total_volume': round(total_cube_in_capacity_uom, 2),
+                                'capacity': capacity,
+                                'capacity_uom': capacity_uom or 'm3',
+                                'overage': round(overage, 2),
+                                'penalty_rate': penalty_rate,
+                            }))
 
     def _log_event(self, sim_date: date, sim_step: int, event_type: str,
                    node_id: str = None, node_type: str = None,

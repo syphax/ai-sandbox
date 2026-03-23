@@ -53,7 +53,7 @@ distribution_nodes:
     latitude: 40.31
     longitude: -74.51
     tags: ["national_dc", "east"]
-    storage_capacity: 5000.0
+    storage_capacity: 50000.0
     storage_capacity_uom: "m3"
     max_outbound: 500.0
     max_outbound_uom: "unit"
@@ -68,7 +68,7 @@ distribution_nodes:
     latitude: 39.53
     longitude: -119.81
     tags: ["national_dc", "west"]
-    storage_capacity: 3000.0
+    storage_capacity: 30000.0
     storage_capacity_uom: "m3"
     max_outbound: 300.0
     max_outbound_uom: "unit"
