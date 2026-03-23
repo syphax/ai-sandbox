@@ -1,6 +1,10 @@
+// Parse URL params to allow dynamic data source
+const urlParams = new URLSearchParams(window.location.search);
+
 export const CONFIG = {
-  // Path to CSV data file (relative to public/)
-  dataFile: '/sample_data.csv',
+  // Data source: URL param ?data=/api/results/xxx/flow-data?db=yyy
+  // Falls back to local sample CSV
+  dataFile: urlParams.get('data') || '/sample_data.csv',
 
   // Playback speed settings: speed level -> seconds per simulated day
   speeds: {
